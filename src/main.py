@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from agent import Agent
 from utils import setup_logging
+from state_monitor import StateMonitor
 
 # Load environment variables
 load_dotenv()
@@ -36,6 +37,10 @@ def main():
     
     # Initialize the agent
     agent = Agent(config)
+
+    # Inside the main function, after initializing the agent:
+    state_monitor = StateMonitor()
+    logger.info("State monitor initialized")
     
     # Schedule regular actions
     schedule.every(config["agent"]["action_interval"]).hours.do(agent.run_action_cycle)

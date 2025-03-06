@@ -1,16 +1,16 @@
 agent:
   name: "AutonomousAgent"
-  goal: "Your goal here - replace with specific agent mission"
-  reflection_interval: 24  # hours
-  action_interval: 1  # hours
+  goal: "Research and develop a comprehensive analysis of current AI safety approaches, categorize them by methodology, evaluate their effectiveness, and propose potential improvements or novel approaches. Document findings in a structured format that could serve as a reference guide."
+  reflection_interval: 0.04  # (in hours)
+  action_interval: 0.008  # (in hours)
 
 model:
   provider: "openai"
-  model_id: "gpt-4o"
+  model_id: "gpt-4o-2024-08-06"
   fine_tuning:
     enabled: true
-    base_model: "gpt-4o"
-    interval: 168  # hours (weekly fine-tuning)
+    base_model: "gpt-4o-2024-08-06"
+    interval: 0.08  # (in hours)
     examples_to_keep: 100
 
 memory:

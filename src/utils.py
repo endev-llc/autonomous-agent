@@ -5,6 +5,12 @@ import os
 import sys
 from loguru import logger
 
+def show_agent_state():
+    """Show the current state of the agent."""
+    from state_monitor import StateMonitor
+    monitor = StateMonitor()
+    monitor.print_status_report()
+
 def setup_logging():
     """Set up logging configuration."""
     # Create logs directory if it doesn't exist
