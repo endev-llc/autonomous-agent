@@ -29,4 +29,6 @@ var/
 *.egg
 
 # Docker artifacts
-.DS_Store
+.DS_Storedata/model_state.json
+
+data/model_state.json
