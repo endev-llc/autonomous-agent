@@ -1,0 +1,23 @@
+agent:
+  name: "AutonomousAgent"
+  goal: "Your goal here - replace with specific agent mission"
+  reflection_interval: 24  # hours
+  action_interval: 1  # hours
+
+model:
+  provider: "openai"
+  model_id: "gpt-4o"
+  fine_tuning:
+    enabled: true
+    base_model: "gpt-4o"
+    interval: 168  # hours (weekly fine-tuning)
+    examples_to_keep: 100
+
+memory:
+  max_tokens: 16000
+  structure:
+    - "Agent Identity and Goal"
+    - "Progress Summary"
+    - "Recent Actions and Outcomes"
+    - "Next Steps and Planning"
+    - "Insights and Learnings"
