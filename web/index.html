@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Agent Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-robot"></i> Autonomous Agent Dashboard</h1>
+            <div class="agent-status">Status: <span id="agent-status-indicator">Checking...</span></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard">
+            <!-- Agent Identity Section -->
+            <section class="panel" id="agent-identity">
+                <h2><i class="fas fa-id-card"></i> Agent Identity</h2>
+                <div class="panel-content">
+                    <p><strong>Name:</strong> <span id="agent-name">Loading...</span></p>
+                    <p><strong>Goal:</strong> <span id="agent-goal">Loading...</span></p>
+                    <p><strong>Model:</strong> <span id="agent-model">Loading...</span></p>
+                </div>
+            </section>
+            
+            <!-- Agent Memory Section -->
+            <section class="panel" id="agent-memory">
+                <h2><i class="fas fa-memory"></i> Current Memory</h2>
+                <div class="panel-content memory-content" id="memory-display">
+                    Loading memory...
+                </div>
+            </section>
+
+            <!-- Activity Log Section -->
+            <section class="panel" id="activity-log">
+                <h2><i class="fas fa-history"></i> Activity Log</h2>
+                <div class="log-controls">
+                    <button id="clear-log"><i class="fas fa-trash"></i> Clear Log</button>
+                    <button id="auto-scroll" class="active"><i class="fas fa-scroll"></i> Auto-scroll</button>
+                </div>
+                <div class="panel-content" id="log-container">
+                    <div id="log-entries">
+                        <div class="log-entry">Initializing log...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interaction Details -->
+            <section class="panel" id="interaction-details">
+                <h2><i class="fas fa-exchange-alt"></i> Latest Interaction</h2>
+                <div class="panel-content">
+                    <div class="interaction-section">
+                        <h3>Prompt Sent to Model:</h3>
+                        <pre id="latest-prompt" class="code-block">No prompts recorded yet</pre>
+                    </div>
+                    <div class="interaction-section">
+                        <h3>Response from Model:</h3>
+                        <div id="latest-response" class="response-content">No responses recorded yet</div>
+                    </div>
+                    <div class="interaction-meta">
+                        <p><strong>Timestamp:</strong> <span id="interaction-timestamp">-</span></p>
+                        <p><strong>Processing Time:</strong> <span id="interaction-processing-time">-</span></p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Autonomous Agent Dashboard | Last Updated: <span id="last-updated">-</span></p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

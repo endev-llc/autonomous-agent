@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  agent:
+    build: .
+    ports:
+      - "3000:8080"  # Map container port 8080 to host port 3000
+    volumes:
+      - ./data:/app/data  # Mount data directory for persistence
+      - ./web:/app/web  # Mount web directory for dashboard
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  # Use from .env file
+      # Uncomment to override the default goal in config.yaml
+      # - AGENT_GOAL=Your custom goal here
+    restart: unless-stopped  # Automatically restart if it crashes

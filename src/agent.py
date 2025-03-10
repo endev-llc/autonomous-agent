@@ -75,6 +75,11 @@ None yet. I'm eager to learn and grow as I work toward my goal.
         
         # Log action
         logger.info(f"Action completed, memory updated")
+        
+        # Log to web interface if model has web server
+        if hasattr(self.model, 'web_server') and self.model.web_server:
+            self.model.web_server.log_interaction('action', 'Action cycle completed and memory updated')
+            
         return response
     
     def run_reflection(self):
@@ -82,26 +87,14 @@ None yet. I'm eager to learn and grow as I work toward my goal.
         logger.info("Running reflection cycle")
         reflection_result = self.reflection.perform_reflection()
         logger.info("Reflection completed")
+        
+        # Log to web interface if model has web server
+        if hasattr(self.model, 'web_server') and self.model.web_server:
+            self.model.web_server.log_interaction('reflection', 'Reflection cycle completed and memory updated')
+        
         return reflection_result
     
-    def run_fine_tuning(self):
-        """Run a fine-tuning cycle to improve the model."""
-        logger.info("Running fine-tuning cycle")
-        
-        # Check if we have enough data for fine-tuning
-        if not self.model.has_enough_fine_tuning_data():
-            logger.info("Not enough data for fine-tuning yet")
-            return False
-        
-        # Run fine-tuning
-        success = self.model.run_fine_tuning()
-        
-        if success:
-            logger.info("Fine-tuning completed successfully")
-        else:
-            logger.error("Fine-tuning failed")
-        
-        return success
+
     
     def _build_action_prompt(self, memory_content):
         """Build the prompt for the action cycle."""

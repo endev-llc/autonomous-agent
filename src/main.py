@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from agent import Agent
 from utils import setup_logging
 from state_monitor import StateMonitor
+from web_server import WebServer
 
 # Load environment variables
 load_dotenv()
@@ -38,9 +39,15 @@ def main():
     # Initialize the agent
     agent = Agent(config)
 
-    # Inside the main function, after initializing the agent:
+    # Initialize the state monitor
     state_monitor = StateMonitor()
     logger.info("State monitor initialized")
+    
+    # Initialize and start the web server
+    web_server = WebServer(agent)
+    agent.model.set_web_server(web_server)
+    web_server.start()
+    logger.info("Web server started")
     
     # Schedule regular actions
     schedule.every(config["agent"]["action_interval"]).hours.do(agent.run_action_cycle)
@@ -48,24 +55,28 @@ def main():
     # Schedule reflection
     schedule.every(config["agent"]["reflection_interval"]).hours.do(agent.run_reflection)
     
-    # Schedule fine-tuning if enabled
-    if config["model"]["fine_tuning"]["enabled"]:
-        fine_tuning_interval = config["model"]["fine_tuning"]["interval"]
-        schedule.every(fine_tuning_interval).hours.do(agent.run_fine_tuning)
+
     
     # Initial action to start the process
     agent.run_action_cycle()
     
+    # Log the startup
+    web_server.log_interaction('info', f'Agent "{agent.name}" initialized with goal: {agent.goal}')
+    web_server.log_interaction('info', f'Using model: {agent.model.model_id}')
+    
     # Main loop
-    logger.info("Agent is running. Press Ctrl+C to stop.")
+    logger.info("Agent is running. Web dashboard available at http://localhost:3000")
+    logger.info("Press Ctrl+C to stop.")
     try:
         while True:
             schedule.run_pending()
             time.sleep(60)  # Check every minute
     except KeyboardInterrupt:
         logger.info("Agent stopped by user")
+        web_server.log_interaction('info', 'Agent stopped by user')
     except Exception as e:
         logger.error(f"Error in main loop: {e}")
+        web_server.log_interaction('error', f'Error in main loop: {str(e)}')
         raise
 
 if __name__ == "__main__":

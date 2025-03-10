@@ -1,10 +1,11 @@
 # Environment variables and secrets
 .env
+.env.*
+!.env.example
 
 # Generated data
-data/logs/
-data/memory.txt
-data/fine_tuning_data.jsonl
+data/
+!data/.gitkeep
 
 # Python artifacts
 __pycache__/
@@ -29,6 +30,4 @@ var/
 *.egg
 
 # Docker artifacts
-.DS_Storedata/model_state.json
-
-data/model_state.json
+.DS_Store

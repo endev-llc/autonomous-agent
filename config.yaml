@@ -7,11 +7,7 @@ agent:
 model:
   provider: "openai"
   model_id: "gpt-4o-2024-08-06"
-  fine_tuning:
-    enabled: true
-    base_model: "gpt-4o-2024-08-06"
-    interval: 0.08  # (in hours)
-    examples_to_keep: 100
+
 
 memory:
   max_tokens: 16000

@@ -2,5 +2,6 @@ openai>=1.0.0
 pyyaml>=6.0
 python-dotenv>=1.0.0
 schedule>=1.2.0
-jsonlines>=3.1.0
 loguru>=0.7.0
+flask>=2.0.0
+markdown>=3.4.0
