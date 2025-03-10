@@ -34,6 +34,8 @@ class WebServer:
         self.max_logs = 100
         self.latest_prompt = None
         self.latest_response = None
+        self.interactions_history = []  # Store complete interaction history
+        self.max_interactions = 50      # Maximum number of stored interactions
         
         self._setup_routes()
         
@@ -103,6 +105,11 @@ class WebServer:
                 'response': self.latest_response
             }
             return jsonify(result)
+            
+        @self.app.route('/api/interactions')
+        def interactions_history():
+            limit = request.args.get('limit', default=50, type=int)
+            return jsonify(self.interactions_history[-limit:] if limit > 0 else self.interactions_history)
     
     def log_interaction(self, log_type, message):
         """Log an interaction for the dashboard."""
@@ -112,6 +119,9 @@ class WebServer:
             'timestamp': datetime.now().isoformat()
         }
         self.interaction_logs.append(log_entry)
+        
+        # Also log to console for debugging
+        logger.debug(f"Logged {log_type}: {message[:50]}{'...' if len(message) > 50 else ''}")
         
         # Keep log size manageable
         if len(self.interaction_logs) > self.max_logs:
@@ -135,6 +145,13 @@ class WebServer:
             'timestamp': log_entry['timestamp']
         }
         
+        # Save for interactions history
+        self._current_interaction = {
+            'prompt': self.latest_prompt,
+            'response': None,
+            'timestamp': log_entry['timestamp']
+        }
+        
         return log_entry
     
     def log_response(self, response):
@@ -152,6 +169,20 @@ class WebServer:
             'content': response,
             'timestamp': log_entry['timestamp']
         }
+        
+        # Complete the current interaction and add to history
+        if hasattr(self, '_current_interaction') and self._current_interaction and self._current_interaction['prompt']:
+            self._current_interaction['response'] = self.latest_response
+            
+            # Add to interactions history
+            self.interactions_history.append(self._current_interaction)
+            
+            # Limit the history size
+            if len(self.interactions_history) > self.max_interactions:
+                self.interactions_history = self.interactions_history[-self.max_interactions:]
+                
+            # Clear current interaction
+            self._current_interaction = None
         
         return log_entry
     

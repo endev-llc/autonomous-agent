@@ -14,7 +14,7 @@ RUN mkdir -p /app/web && chmod -R 755 /app/web
 
 # Environment variables (override with docker-compose or at runtime)
 ENV OPENAI_API_KEY="your-api-key-here"
-ENV AGENT_GOAL="Default goal: Analyze data and provide insights"
+ENV AGENT_GOAL="Discover a new law of physics by exploring theoretical inconsistencies in current models, seeking patterns in existing data, and proposing novel mathematical frameworks that could explain observed phenomena. Develop, test, and refine hypotheses through thought experiments and logical reasoning. Document your process, insights, and ultimately formulate a coherent new physical law or theory."
 
 # Expose port for web interface
 EXPOSE 8080
