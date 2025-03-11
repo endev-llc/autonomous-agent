@@ -3,231 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Autonomous Agent Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#"><i class="fas fa-robot me-2"></i>Agent Dashboard</a>
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-robot me-2"></i>Autonomous Agent</a>
             <div class="navbar-text">
-                <span class="status-indicator">
-                    Status: <span id="agent-status-indicator" class="badge bg-warning">Checking...</span>
+                <span class="status-badge">
+                    Status: <span id="agent-status" class="badge bg-warning">Checking...</span>
                 </span>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid mt-3">
+    <div class="container mt-4">
+        <!-- Agent Info Panel -->
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="fas fa-info-circle me-2"></i>Agent Summary</h5>
+                        <h5><i class="fas fa-info-circle me-2"></i>Agent Info</h5>
                     </div>
                     <div class="card-body">
-                        <div class="agent-info">
-                            <p><strong>Name:</strong> <span id="agent-name">Loading...</span></p>
-                            <p><strong>Model:</strong> <span id="agent-model">Loading...</span></p>
-                            <p><strong>Running since:</strong> <span id="agent-uptime">Loading...</span></p>
-                            <p><strong>Actions taken:</strong> <span id="agent-actions-count">0</span></p>
-                            <p><strong>Last updated:</strong> <span id="last-updated">-</span></p>
-                        </div>
+                        <p><strong>Name:</strong> <span id="agent-name">Loading...</span></p>
+                        <p><strong>Model:</strong> <span id="agent-model">Loading...</span></p>
+                        <p><strong>Running since:</strong> <span id="agent-uptime">Loading...</span></p>
                     </div>
                 </div>
             </div>
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="fas fa-tasks me-2"></i>Current Goal</h5>
+                        <h5><i class="fas fa-tasks me-2"></i>Goal</h5>
                     </div>
                     <div class="card-body">
-                        <div class="goal-display">
-                            <p id="agent-goal">Loading...</p>
-                        </div>
+                        <p id="agent-goal">Loading...</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-chart-line me-2"></i>Current Status</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="current-activity">
-                                    <h6><i class="fas fa-play-circle me-2"></i>Currently Working On:</h6>
-                                    <p id="current-activity" class="activity-text">Initializing...</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="progress-stage">
-                                    <h6><i class="fas fa-map-signs me-2"></i>Progress Stage:</h6>
-                                    <div class="progress-tracker">
-                                        <div class="progress-step active" data-stage="Initialize">
-                                            <div class="step-number">1</div>
-                                            <div class="step-label">Initialize</div>
-                                        </div>
-                                        <div class="progress-step" data-stage="Research">
-                                            <div class="step-number">2</div>
-                                            <div class="step-label">Research</div>
-                                        </div>
-                                        <div class="progress-step" data-stage="Analyze">
-                                            <div class="step-number">3</div>
-                                            <div class="step-label">Analyze</div>
-                                        </div>
-                                        <div class="progress-step" data-stage="Develop">
-                                            <div class="step-number">4</div>
-                                            <div class="step-label">Develop</div>
-                                        </div>
-                                        <div class="progress-step" data-stage="Finalize">
-                                            <div class="step-number">5</div>
-                                            <div class="step-label">Finalize</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Current Activity Panel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-sync me-2"></i>Current Activity</h5>
+            </div>
+            <div class="card-body">
+                <p id="current-activity">Initializing...</p>
             </div>
         </div>
 
-        <!-- Tab Navigation -->
+        <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="mainTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab" aria-controls="timeline" aria-selected="true">
-                    <i class="fas fa-history me-2"></i>Activity Timeline
+            <li class="nav-item">
+                <button class="nav-link active" id="memory-tab" data-bs-toggle="tab" data-bs-target="#memory" type="button" role="tab">
+                    <i class="fas fa-brain me-2"></i>Memory
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="interactions-tab" data-bs-toggle="tab" data-bs-target="#interactions" type="button" role="tab" aria-controls="interactions" aria-selected="false">
+            <li class="nav-item">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
+                    <i class="fas fa-list me-2"></i>Logs
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="interactions-tab" data-bs-toggle="tab" data-bs-target="#interactions" type="button" role="tab">
                     <i class="fas fa-exchange-alt me-2"></i>Interactions
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">
-                    <i class="fas fa-terminal me-2"></i>Detailed Logs
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="memory-tab" data-bs-toggle="tab" data-bs-target="#memory" type="button" role="tab" aria-controls="memory" aria-selected="false">
-                    <i class="fas fa-memory me-2"></i>Agent Memory
                 </button>
             </li>
         </ul>
 
         <!-- Tab Content -->
-        <div class="tab-content mt-3" id="mainTabsContent">
-            <!-- Timeline Tab -->
-            <div class="tab-pane fade show active" id="timeline" role="tabpanel" aria-labelledby="timeline-tab">
+        <div class="tab-content mt-3">
+            <!-- Memory Tab -->
+            <div class="tab-pane fade show active" id="memory" role="tabpanel">
                 <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-history me-2"></i>Activity Timeline</h5>
-                            <button id="refresh-timeline" class="btn btn-sm btn-primary">
-                                <i class="fas fa-sync-alt me-1"></i>Refresh
-                            </button>
-                        </div>
+                    <div class="card-header d-flex justify-content-between">
+                        <h5><i class="fas fa-brain me-2"></i>Agent Memory</h5>
+                        <button id="refresh-memory" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
                     </div>
                     <div class="card-body">
-                        <div class="timeline-container" id="timeline-container">
-                            <div class="timeline-loading">Loading timeline...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Interactions Tab -->
-            <div class="tab-pane fade" id="interactions" role="tabpanel" aria-labelledby="interactions-tab">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-exchange-alt me-2"></i>Agent Interactions</h5>
-                            <div class="interaction-controls">
-                                <button id="prev-interaction" class="btn btn-sm btn-secondary me-1" disabled>
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                <span id="interaction-page-info">Interaction 0 of 0</span>
-                                <button id="next-interaction" class="btn btn-sm btn-secondary ms-1" disabled>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="interaction-container">
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <h6 class="interaction-timestamp" id="interaction-timestamp">No timestamp available</h6>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <div class="prompt-section">
-                                        <h6><i class="fas fa-paper-plane me-2"></i>Agent Prompt:</h6>
-                                        <div class="prompt-content">
-                                            <pre id="interaction-prompt" class="code-block">No prompt available</pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="response-section">
-                                        <h6><i class="fas fa-reply me-2"></i>Model Response:</h6>
-                                        <div class="response-content" id="interaction-response">
-                                            No response available
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="memory-content" class="memory-content">
+                            Loading memory...
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Logs Tab -->
-            <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+            <div class="tab-pane fade" id="logs" role="tabpanel">
                 <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-terminal me-2"></i>Detailed Logs</h5>
-                            <div class="log-controls">
-                                <div class="btn-group me-2">
-                                    <button class="btn btn-sm btn-outline-secondary filter-log active" data-filter="all">All</button>
-                                    <button class="btn btn-sm btn-outline-info filter-log" data-filter="info">Info</button>
-                                    <button class="btn btn-sm btn-outline-primary filter-log" data-filter="action">Actions</button>
-                                    <button class="btn btn-sm btn-outline-success filter-log" data-filter="prompt">Prompts</button>
-                                    <button class="btn btn-sm btn-outline-warning filter-log" data-filter="response">Responses</button>
-                                    <button class="btn btn-sm btn-outline-danger filter-log" data-filter="error">Errors</button>
-                                </div>
-                                <button id="clear-logs" class="btn btn-sm btn-secondary me-2">
-                                    <i class="fas fa-trash me-1"></i>Clear
-                                </button>
-                                <div class="btn-group">
-                                    <button id="prev-logs" class="btn btn-sm btn-secondary" disabled>
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <button id="next-logs" class="btn btn-sm btn-secondary" disabled>
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-header d-flex justify-content-between">
+                        <h5><i class="fas fa-list me-2"></i>Activity Logs</h5>
+                        <button id="refresh-logs" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
                     </div>
                     <div class="card-body p-0">
-                        <div class="log-container">
-                            <table class="table table-hover table-striped mb-0" id="logs-table">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
                                 <thead>
                                     <tr>
                                         <th>Time</th>
@@ -235,50 +114,29 @@
                                         <th>Message</th>
                                     </tr>
                                 </thead>
-                                <tbody id="logs-body">
+                                <tbody id="logs-container">
                                     <tr>
-                                        <td colspan="3" class="text-center">No logs available</td>
+                                        <td colspan="3" class="text-center">Loading logs...</td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                        <div class="card-footer d-flex justify-content-between align-items-center">
-                            <div id="logs-page-info">Page 1 of 1</div>
-                            <div class="logs-pagination">
-                                <div class="btn-group">
-                                    <button id="logs-first-page" class="btn btn-sm btn-outline-secondary" disabled>
-                                        <i class="fas fa-angle-double-left"></i>
-                                    </button>
-                                    <button id="logs-prev-page" class="btn btn-sm btn-outline-secondary" disabled>
-                                        <i class="fas fa-angle-left"></i>
-                                    </button>
-                                    <button id="logs-next-page" class="btn btn-sm btn-outline-secondary" disabled>
-                                        <i class="fas fa-angle-right"></i>
-                                    </button>
-                                    <button id="logs-last-page" class="btn btn-sm btn-outline-secondary" disabled>
-                                        <i class="fas fa-angle-double-right"></i>
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Memory Tab -->
-            <div class="tab-pane fade" id="memory" role="tabpanel" aria-labelledby="memory-tab">
+            <!-- Interactions Tab -->
+            <div class="tab-pane fade" id="interactions" role="tabpanel">
                 <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-memory me-2"></i>Agent Memory</h5>
-                            <button id="refresh-memory" class="btn btn-sm btn-primary">
-                                <i class="fas fa-sync-alt me-1"></i>Refresh
-                            </button>
-                        </div>
+                    <div class="card-header d-flex justify-content-between">
+                        <h5><i class="fas fa-exchange-alt me-2"></i>Agent Interactions</h5>
+                        <button id="refresh-interactions" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
                     </div>
                     <div class="card-body">
-                        <div class="memory-container" id="memory-display">
-                            Loading memory...
+                        <div id="interactions-container" class="interactions-list">
+                            <div class="text-center py-3">Loading interactions...</div>
                         </div>
                     </div>
                 </div>
@@ -286,13 +144,58 @@
         </div>
     </div>
 
-    <footer class="footer mt-4">
-        <div class="container-fluid text-center">
-            <p class="small text-muted">Agent Dashboard | Last Updated: <span id="footer-last-updated">-</span></p>
+    <!-- Fullscreen Interaction Modal -->
+    <div class="modal fade" id="interaction-modal" tabindex="-1" aria-labelledby="interaction-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="interaction-modal-label">Interaction Details</h5>
+                    <div class="ms-auto">
+                        <span class="badge bg-secondary me-2" id="modal-interaction-time"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-paper-plane me-2"></i>Prompt</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre id="modal-prompt" class="modal-content-block"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-reply me-2"></i>Response</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="modal-response" class="modal-content-block"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-4 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Last updated: <span id="last-updated">-</span></span>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

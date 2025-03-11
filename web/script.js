@@ -1,150 +1,94 @@
-// Dashboard Configuration
+// Configuration
 const CONFIG = {
     apiBaseUrl: '/api',
-    pollInterval: 5000,     // Poll for updates every 5 seconds
-    logsPerPage: 15,        // Number of logs to display per page
-    maxTimelineEntries: 10, // Max entries to show in timeline
-    maxInteractions: 50     // Max interactions to store
+    pollInterval: 5000,  // Poll for updates every 5 seconds
+    maxInteractions: 20  // Maximum number of interactions to show
 };
 
 // Application State
 const state = {
+    agentInfo: null,
     memory: null,
     logs: [],
     interactions: [],
-    agentInfo: null,
     lastUpdated: null,
-    currentActivity: "Initializing",
-    currentStage: "Initialize",
-    // Pagination state
-    logsPage: 1,
-    totalLogsPages: 1,
-    currentInteractionIndex: 0,
-    // Filtering
-    logFilter: 'all'
+    currentActivity: "Initializing..."
 };
 
 // DOM Elements
 const elements = {
     // Agent Info
-    agentStatus: document.getElementById('agent-status-indicator'),
+    agentStatus: document.getElementById('agent-status'),
     agentName: document.getElementById('agent-name'),
     agentGoal: document.getElementById('agent-goal'),
     agentModel: document.getElementById('agent-model'),
     agentUptime: document.getElementById('agent-uptime'),
-    agentActionsCount: document.getElementById('agent-actions-count'),
-    lastUpdated: document.getElementById('last-updated'),
-    footerLastUpdated: document.getElementById('footer-last-updated'),
     
     // Current Status
     currentActivity: document.getElementById('current-activity'),
-    progressSteps: document.querySelectorAll('.progress-step'),
     
-    // Timeline
-    timelineContainer: document.getElementById('timeline-container'),
-    refreshTimeline: document.getElementById('refresh-timeline'),
-    
-    // Interactions
-    interactionPrompt: document.getElementById('interaction-prompt'),
-    interactionResponse: document.getElementById('interaction-response'),
-    interactionTimestamp: document.getElementById('interaction-timestamp'),
-    interactionPageInfo: document.getElementById('interaction-page-info'),
-    prevInteraction: document.getElementById('prev-interaction'),
-    nextInteraction: document.getElementById('next-interaction'),
-    
-    // Logs
-    logsTable: document.getElementById('logs-table'),
-    logsBody: document.getElementById('logs-body'),
-    logsPageInfo: document.getElementById('logs-page-info'),
-    clearLogs: document.getElementById('clear-logs'),
-    logFilters: document.querySelectorAll('.filter-log'),
-    logsFirstPage: document.getElementById('logs-first-page'),
-    logsPrevPage: document.getElementById('logs-prev-page'),
-    logsNextPage: document.getElementById('logs-next-page'),
-    logsLastPage: document.getElementById('logs-last-page'),
-    
-    // Memory
-    memoryDisplay: document.getElementById('memory-display'),
+    // Memory Tab
+    memoryContent: document.getElementById('memory-content'),
     refreshMemory: document.getElementById('refresh-memory'),
     
-    // Tabs
-    mainTabs: document.querySelectorAll('[data-bs-toggle="tab"]')
+    // Logs Tab
+    logsContainer: document.getElementById('logs-container'),
+    refreshLogs: document.getElementById('refresh-logs'),
+    
+    // Interactions Tab
+    interactionsContainer: document.getElementById('interactions-container'),
+    refreshInteractions: document.getElementById('refresh-interactions'),
+    
+    // Modal
+    interactionModal: new bootstrap.Modal(document.getElementById('interaction-modal')),
+    modalPrompt: document.getElementById('modal-prompt'),
+    modalResponse: document.getElementById('modal-response'),
+    modalInteractionTime: document.getElementById('modal-interaction-time'),
+    
+    // Footer
+    lastUpdated: document.getElementById('last-updated')
 };
 
-// -------------- Initialization and Polling --------------
-
 // Initialize the dashboard
-function initDashboard() {
+function init() {
     // Set up event listeners
     setupEventListeners();
     
-    // Start polling for updates
+    // Fetch initial data
     fetchInitialData();
-    setInterval(pollForUpdates, CONFIG.pollInterval);
     
-    // Update time
-    updateLastUpdated();
+    // Start polling for updates
+    setInterval(pollForUpdates, CONFIG.pollInterval);
 }
 
 // Set up event listeners
 function setupEventListeners() {
-    // Timeline
-    elements.refreshTimeline.addEventListener('click', refreshTimeline);
-    
-    // Interactions navigation
-    elements.prevInteraction.addEventListener('click', showPreviousInteraction);
-    elements.nextInteraction.addEventListener('click', showNextInteraction);
-    
-    // Logs
-    elements.clearLogs.addEventListener('click', clearLogs);
-    elements.logFilters.forEach(filter => {
-        filter.addEventListener('click', () => filterLogs(filter.dataset.filter));
-    });
-    
-    // Logs pagination
-    elements.logsFirstPage.addEventListener('click', () => goToLogsPage(1));
-    elements.logsPrevPage.addEventListener('click', () => goToLogsPage(state.logsPage - 1));
-    elements.logsNextPage.addEventListener('click', () => goToLogsPage(state.logsPage + 1));
-    elements.logsLastPage.addEventListener('click', () => goToLogsPage(state.totalLogsPages));
-    
-    // Memory
-    elements.refreshMemory.addEventListener('click', refreshMemory);
-    
-    // Tab change events
-    elements.mainTabs.forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function (e) {
-            if (e.target.id === 'memory-tab') {
-                refreshMemory();
-            } else if (e.target.id === 'timeline-tab') {
-                refreshTimeline();
-            }
-        });
-    });
+    // Refresh buttons
+    elements.refreshMemory.addEventListener('click', fetchMemory);
+    elements.refreshLogs.addEventListener('click', fetchLogs);
+    elements.refreshInteractions.addEventListener('click', fetchInteractions);
 }
 
-// Fetch initial data from the agent
+// Fetch initial data
 async function fetchInitialData() {
     try {
-        // Fetch agent identity
-        const agentInfo = await fetchAgentInfo();
-        updateAgentInfo(agentInfo);
+        // Fetch agent info
+        await fetchAgentInfo();
         
         // Fetch memory
-        const memory = await fetchMemory();
-        updateMemory(memory);
+        await fetchMemory();
         
-        // Fetch recent logs
-        const logs = await fetchLogs();
-        updateLogs(logs);
+        // Fetch logs
+        await fetchLogs();
         
-        // Fetch interactions history
-        await fetchInteractionsHistory();
+        // Fetch interactions
+        await fetchInteractions();
         
-        // Generate timeline
-        generateTimeline();
-        
-        // Set agent status to online
+        // Update agent status
         updateAgentStatus('online');
+        
+        // Update last updated time
+        updateLastUpdated();
     } catch (error) {
         console.error('Error fetching initial data:', error);
         updateAgentStatus('offline');
@@ -156,753 +100,389 @@ async function fetchInitialData() {
 async function pollForUpdates() {
     try {
         // Check for new logs
-        const newLogs = await fetchNewLogs();
-        if (newLogs && newLogs.length > 0) {
-            appendLogs(newLogs);
-            updateTimeline();
-        }
+        await fetchLogs();
         
-        // Check for latest interaction
-        const latestInteraction = await fetchLatestInteraction();
-        if (latestInteraction && (latestInteraction.prompt || latestInteraction.response)) {
-            updateInteractions(latestInteraction);
-        }
+        // Check for new interactions
+        await fetchInteractions();
         
-        // Check current activity and stage
-        updateCurrentStatus();
+        // Update agent status
+        updateAgentStatus('online');
         
         // Update last updated time
         updateLastUpdated();
-        
-        // Set agent status to online
-        updateAgentStatus('online');
     } catch (error) {
         console.error('Error polling for updates:', error);
         updateAgentStatus('offline');
     }
 }
 
-// -------------- API Calls --------------
-
 // Fetch agent information
 async function fetchAgentInfo() {
     try {
         const response = await fetch(`${CONFIG.apiBaseUrl}/agent-info`);
         if (!response.ok) {
-            throw new Error(`Error fetching agent info: ${response.status}`);
+            throw new Error(`HTTP error ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        state.agentInfo = data;
+        updateAgentInfo();
+        return data;
     } catch (error) {
         console.error('Error fetching agent info:', error);
-        return null;
+        throw error;
     }
 }
 
-// Fetch agent memory
+// Fetch memory
 async function fetchMemory() {
     try {
         const response = await fetch(`${CONFIG.apiBaseUrl}/memory`);
         if (!response.ok) {
-            throw new Error(`Error fetching memory: ${response.status}`);
+            throw new Error(`HTTP error ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        state.memory = data.content;
+        updateMemoryDisplay();
+        return data;
     } catch (error) {
         console.error('Error fetching memory:', error);
-        return { content: "Error loading memory" };
+        throw error;
     }
 }
 
-// Fetch all logs
-async function fetchLogs(limit = 1000) {
+// Fetch logs
+async function fetchLogs() {
     try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/logs?limit=${limit}`);
+        const response = await fetch(`${CONFIG.apiBaseUrl}/logs`);
         if (!response.ok) {
-            throw new Error(`Error fetching logs: ${response.status}`);
+            throw new Error(`HTTP error ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        state.logs = data;
+        updateLogsDisplay();
+        updateCurrentActivity();
+        return data;
     } catch (error) {
         console.error('Error fetching logs:', error);
-        return [];
+        throw error;
     }
 }
 
-// Fetch new logs since last update
-async function fetchNewLogs() {
-    if (!state.lastUpdated) return [];
-    
+// Fetch all interactions history
+async function fetchInteractions() {
     try {
-        const timestamp = state.lastUpdated.toISOString();
-        const response = await fetch(`${CONFIG.apiBaseUrl}/logs/since?timestamp=${encodeURIComponent(timestamp)}`);
+        const response = await fetch(`${CONFIG.apiBaseUrl}/interactions?limit=${CONFIG.maxInteractions}`);
         if (!response.ok) {
-            throw new Error(`Error fetching new logs: ${response.status}`);
+            throw new Error(`HTTP error ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        
+        // Check if interactions data has changed before updating display
+        if (hasInteractionsChanged(data)) {
+            state.interactions = data;
+            updateInteractionsDisplay();
+        }
+        return data;
     } catch (error) {
-        console.error('Error fetching new logs:', error);
-        return [];
+        console.error('Error fetching interactions:', error);
+        throw error;
     }
 }
 
-// Fetch the latest interaction
-async function fetchLatestInteraction() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/latest-interaction`);
-        if (!response.ok) {
-            throw new Error(`Error fetching latest interaction: ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching latest interaction:', error);
-        return null;
-    }
-}
-
-// -------------- Data Processing --------------
-
-// Build a history of all interactions from the logs
-async function fetchInteractionsHistory() {
-    try {
-        // Get all logs
-        const allLogs = await fetchLogs(1000);
-        
-        // Group prompts and responses
-        let interactions = [];
-        let currentPrompt = null;
-        
-        // Sort logs by timestamp
-        allLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        for (const log of allLogs) {
-            if (log.type === 'prompt') {
-                // Start a new interaction
-                currentPrompt = {
-                    timestamp: log.timestamp,
-                    content: log.message
-                };
-            } else if (log.type === 'response' && currentPrompt) {
-                // Complete the interaction
-                interactions.push({
-                    prompt: currentPrompt,
-                    response: {
-                        timestamp: log.timestamp,
-                        content: log.message
-                    }
-                });
-                currentPrompt = null;
-            }
-        }
-        
-        // Limit to max interactions
-        if (interactions.length > CONFIG.maxInteractions) {
-            interactions = interactions.slice(-CONFIG.maxInteractions);
-        }
-        
-        state.interactions = interactions;
-        updateInteractionControls();
-        showLatestInteraction();
-        
-        return interactions;
-    } catch (error) {
-        console.error('Error building interactions history:', error);
-        return [];
-    }
-}
-
-// Create a summarized timeline from the logs
-function generateTimeline() {
-    const timelineGroups = [];
-    let currentGroup = null;
-    
-    // Helper function to add a new group
-    function startNewGroup(log) {
-        return {
-            startTime: log.timestamp,
-            endTime: log.timestamp,
-            activity: determineActivity(log),
-            stage: determineStage(log),
-            logType: log.type,
-            details: [log.message],
-            count: 1
-        };
+// Check if interactions data has changed
+function hasInteractionsChanged(newInteractions) {
+    if (state.interactions.length !== newInteractions.length) {
+        return true;
     }
     
-    // Process logs to create timeline groups
-    for (const log of state.logs) {
-        // Skip non-significant logs
-        if (!isSignificantForTimeline(log)) continue;
+    // Check if the latest interaction has changed
+    if (newInteractions.length > 0 && state.interactions.length > 0) {
+        const latest = newInteractions[newInteractions.length - 1];
+        const current = state.interactions[state.interactions.length - 1];
         
-        if (!currentGroup || !areLogsRelated(currentGroup, log)) {
-            // Start a new group if needed
-            if (currentGroup) {
-                timelineGroups.push(currentGroup);
-            }
-            currentGroup = startNewGroup(log);
-        } else {
-            // Update the current group
-            currentGroup.endTime = log.timestamp;
-            currentGroup.details.push(log.message);
-            currentGroup.count++;
+        if (!latest.prompt || !current.prompt) return true;
+        
+        // Compare timestamps
+        return latest.timestamp !== current.timestamp;
+    }
+    
+    return false;
+}
+
+// Update agent info display
+function updateAgentInfo() {
+    if (state.agentInfo) {
+        elements.agentName.textContent = state.agentInfo.name || 'Unknown';
+        elements.agentGoal.textContent = state.agentInfo.goal || 'No goal specified';
+        elements.agentModel.textContent = state.agentInfo.model || 'Unknown';
+        
+        // Update uptime if start time is available
+        if (state.agentInfo.startTime) {
+            updateUptime(state.agentInfo.startTime);
         }
     }
-    
-    // Add the last group
-    if (currentGroup) {
-        timelineGroups.push(currentGroup);
-    }
-    
-    // Limit timeline entries
-    const limitedTimeline = timelineGroups.slice(-CONFIG.maxTimelineEntries);
-    
-    // Update the timeline UI
-    renderTimeline(limitedTimeline);
-    
-    return limitedTimeline;
 }
 
-// Determine if a log is significant for the timeline
-function isSignificantForTimeline(log) {
-    // Include action, reflection, and error logs
-    return ['action', 'reflection', 'error'].includes(log.type) || 
-           // Include important info logs about activity
-           (log.type === 'info' && 
-            (log.message.includes('initialized') || 
-             log.message.includes('strategy') || 
-             log.message.includes('completed')));
-}
-
-// Determine if two logs should be grouped together
-function areLogsRelated(group, log) {
-    // Group by log type and time proximity (within 5 minutes)
-    const timeThreshold = 5 * 60 * 1000; // 5 minutes
-    const timeA = new Date(group.endTime);
-    const timeB = new Date(log.timestamp);
-    const timeDiff = Math.abs(timeB - timeA);
-    
-    return group.logType === log.type && timeDiff < timeThreshold;
-}
-
-// Determine the activity description from a log
-function determineActivity(log) {
-    if (log.type === 'action') {
-        if (log.message.includes('initialized')) return 'Initialization';
-        if (log.message.includes('research')) return 'Research';
-        if (log.message.includes('analyz')) return 'Analysis';
-        if (log.message.includes('categori')) return 'Categorization';
-        if (log.message.includes('develop')) return 'Development';
-        return 'Activity';
-    } else if (log.type === 'reflection') {
-        return 'Reflection';
-    } else if (log.type === 'error') {
-        return 'Error';
+// Update memory display
+function updateMemoryDisplay() {
+    if (state.memory) {
+        elements.memoryContent.textContent = state.memory;
     } else {
-        return 'Activity';
+        elements.memoryContent.textContent = 'No memory data available';
     }
 }
 
-// Determine the current stage from a log
-function determineStage(log) {
-    const message = log.message.toLowerCase();
-    
-    if (message.includes('initializ') || message.includes('starting')) {
-        return 'Initialize';
-    } else if (message.includes('research') || message.includes('review') || message.includes('literature')) {
-        return 'Research';
-    } else if (message.includes('analyz') || message.includes('evaluat')) {
-        return 'Analyze';
-    } else if (message.includes('develop') || message.includes('implement') || message.includes('build')) {
-        return 'Develop';
-    } else if (message.includes('finaliz') || message.includes('complet') || message.includes('finish')) {
-        return 'Finalize';
+// Update logs display
+function updateLogsDisplay() {
+    if (!state.logs || state.logs.length === 0) {
+        elements.logsContainer.innerHTML = '<tr><td colspan="3" class="text-center">No logs available</td></tr>';
+        return;
     }
     
-    return state.currentStage; // Keep current stage if no change detected
+    // Clear current logs
+    elements.logsContainer.innerHTML = '';
+    
+    // Add logs (most recent first)
+    const recentLogs = state.logs.slice(-50).reverse();
+    recentLogs.forEach(log => {
+        const row = document.createElement('tr');
+        
+        // Time cell
+        const timeCell = document.createElement('td');
+        timeCell.textContent = formatTime(log.timestamp);
+        row.appendChild(timeCell);
+        
+        // Type cell
+        const typeCell = document.createElement('td');
+        const typeSpan = document.createElement('span');
+        typeSpan.className = `log-type ${log.type}`;
+        typeSpan.textContent = log.type.charAt(0).toUpperCase() + log.type.slice(1);
+        typeCell.appendChild(typeSpan);
+        row.appendChild(typeCell);
+        
+        // Message cell
+        const messageCell = document.createElement('td');
+        messageCell.textContent = log.message;
+        row.appendChild(messageCell);
+        
+        elements.logsContainer.appendChild(row);
+    });
 }
 
-// Update the current status based on recent logs
-function updateCurrentStatus() {
-    if (state.logs.length === 0) return;
+// Update interactions display
+function updateInteractionsDisplay() {
+    if (!state.interactions || state.interactions.length === 0) {
+        elements.interactionsContainer.innerHTML = '<div class="text-center py-3">No interactions available</div>';
+        return;
+    }
     
-    // Look at the most recent logs
-    const recentLogs = state.logs.slice(-10);
+    // Clear current interactions
+    elements.interactionsContainer.innerHTML = '';
     
-    // Try to determine current activity
-    for (let i = recentLogs.length - 1; i >= 0; i--) {
-        const log = recentLogs[i];
-        if (log.type === 'action' || log.type === 'reflection') {
-            state.currentActivity = log.message;
-            elements.currentActivity.textContent = log.message;
-            break;
+    // Add interactions (most recent first)
+    const sortedInteractions = [...state.interactions].reverse();
+    sortedInteractions.forEach((interaction, index) => {
+        const interactionElem = createInteractionElement(interaction, index);
+        elements.interactionsContainer.appendChild(interactionElem);
+    });
+}
+
+// Create an interaction element
+function createInteractionElement(interaction, index) {
+    const container = document.createElement('div');
+    container.className = 'interaction-container';
+    container.dataset.index = index;
+    
+    // Interaction header
+    const header = document.createElement('div');
+    header.className = 'interaction-header';
+    
+    const interactionNumber = document.createElement('div');
+    interactionNumber.textContent = `Interaction #${state.interactions.length - index}`;
+    
+    const interactionTime = document.createElement('div');
+    interactionTime.className = 'interaction-time';
+    interactionTime.textContent = formatDateTime(interaction.timestamp || interaction.prompt?.timestamp || '');
+    
+    header.appendChild(interactionNumber);
+    header.appendChild(interactionTime);
+    
+    // Interaction body
+    const body = document.createElement('div');
+    body.className = 'interaction-body';
+    
+    // Prompt section
+    const promptSection = document.createElement('div');
+    promptSection.className = 'interaction-prompt';
+    
+    const promptLabel = document.createElement('div');
+    promptLabel.className = 'interaction-label';
+    promptLabel.innerHTML = '<i class="fas fa-paper-plane"></i> Prompt';
+    
+    const promptContent = document.createElement('div');
+    promptContent.className = 'interaction-content';
+    promptContent.textContent = interaction.prompt?.content || 'No prompt available';
+    
+    promptSection.appendChild(promptLabel);
+    promptSection.appendChild(promptContent);
+    
+    // Response section
+    const responseSection = document.createElement('div');
+    responseSection.className = 'interaction-response';
+    
+    const responseLabel = document.createElement('div');
+    responseLabel.className = 'interaction-label';
+    responseLabel.innerHTML = '<i class="fas fa-reply"></i> Response';
+    
+    const responseContent = document.createElement('div');
+    responseContent.className = 'interaction-content';
+    responseContent.textContent = extractTextContent(interaction.response?.content || 'No response available');
+    
+    responseSection.appendChild(responseLabel);
+    responseSection.appendChild(responseContent);
+    
+    // Add sections to body
+    body.appendChild(promptSection);
+    body.appendChild(responseSection);
+    
+    // Add header and body to container
+    container.appendChild(header);
+    container.appendChild(body);
+    
+    // Add click event to show full interaction
+    container.addEventListener('click', () => showInteractionModal(interaction));
+    
+    return container;
+}
+
+// Show interaction modal with full content
+function showInteractionModal(interaction) {
+    // Set prompt content
+    elements.modalPrompt.textContent = interaction.prompt?.content || 'No prompt available';
+    
+    // Set response content
+    if (interaction.response?.content) {
+        try {
+            elements.modalResponse.innerHTML = marked.parse(interaction.response.content);
+        } catch (e) {
+            elements.modalResponse.textContent = interaction.response.content;
         }
+    } else {
+        elements.modalResponse.textContent = 'No response available';
     }
     
-    // Try to determine current stage
-    for (let i = recentLogs.length - 1; i >= 0; i--) {
-        const log = recentLogs[i];
-        const newStage = determineStage(log);
-        if (newStage !== state.currentStage) {
-            state.currentStage = newStage;
-            updateProgressTracker(state.currentStage);
-            break;
+    // Set timestamp
+    elements.modalInteractionTime.textContent = formatDateTime(interaction.timestamp || interaction.prompt?.timestamp || '');
+    
+    // Show the modal
+    elements.interactionModal.show();
+}
+
+// Extract plain text from potentially HTML content
+function extractTextContent(html) {
+    if (!html) return '';
+    
+    // Create a temporary element
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Return text content
+    return temp.textContent || temp.innerText || html;
+}
+
+// Update current activity based on recent logs
+function updateCurrentActivity() {
+    if (state.logs && state.logs.length > 0) {
+        // Get the most recent logs (last 5)
+        const recentLogs = state.logs.slice(-5);
+        
+        // Look for action logs first
+        const actionLog = recentLogs.find(log => log.type === 'action');
+        if (actionLog) {
+            state.currentActivity = actionLog.message;
+            elements.currentActivity.textContent = actionLog.message;
+            return;
         }
+        
+        // Otherwise use the most recent log
+        const latestLog = recentLogs[recentLogs.length - 1];
+        state.currentActivity = `${latestLog.type}: ${latestLog.message}`;
+        elements.currentActivity.textContent = state.currentActivity;
     }
-}
-
-// Update the timeline when new logs arrive
-function updateTimeline() {
-    generateTimeline();
-}
-
-// -------------- UI Updates --------------
-
-// Update agent info
-function updateAgentInfo(info) {
-    if (!info) return;
-    
-    state.agentInfo = info;
-    elements.agentName.textContent = info.name || 'Unknown';
-    elements.agentGoal.textContent = info.goal || 'No goal specified';
-    elements.agentModel.textContent = info.model || 'Unknown model';
-    
-    // Calculate uptime
-    if (info.startTime) {
-        const startTime = new Date(info.startTime);
-        updateUptime(startTime);
-        // Set interval to update uptime every minute
-        setInterval(() => updateUptime(startTime), 60000);
-    }
-}
-
-// Update uptime display
-function updateUptime(startTime) {
-    const now = new Date();
-    const diff = now - startTime;
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    let uptimeText = '';
-    if (days > 0) uptimeText += `${days}d `;
-    if (hours > 0 || days > 0) uptimeText += `${hours}h `;
-    uptimeText += `${minutes}m`;
-    
-    elements.agentUptime.textContent = uptimeText;
 }
 
 // Update agent status indicator
 function updateAgentStatus(status) {
-    elements.agentStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-    elements.agentStatus.className = `badge bg-${status === 'online' ? 'success' : 'danger'}`;
+    elements.agentStatus.className = status === 'online' 
+        ? 'badge bg-success' 
+        : 'badge bg-danger';
+    
+    elements.agentStatus.textContent = status === 'online' 
+        ? 'Online' 
+        : 'Offline';
 }
 
-// Update the memory display
-function updateMemory(memory) {
-    if (!memory || !memory.content) return;
-    
-    state.memory = memory;
-    
-    // Convert markdown to HTML for better formatting
+// Update uptime display
+function updateUptime(startTime) {
     try {
-        const htmlContent = marked.parse(memory.content);
-        elements.memoryDisplay.innerHTML = htmlContent;
-    } catch (error) {
-        console.error('Error parsing memory markdown:', error);
-        elements.memoryDisplay.textContent = memory.content;
-    }
-}
-
-// Update logs data and UI
-function updateLogs(logs) {
-    if (!logs || !logs.length) return;
-    
-    console.log(`Received ${logs.length} logs from the server.`);
-    
-    // Replace existing logs
-    state.logs = logs;
-    
-    // Update action count
-    updateActionCount();
-    
-    // Render logs with current filter and page
-    renderLogs();
-}
-
-// Append new logs
-function appendLogs(newLogs) {
-    if (!newLogs || !newLogs.length) return;
-    
-    // Add new logs to the state
-    state.logs = [...state.logs, ...newLogs];
-    
-    // Update action count
-    updateActionCount();
-    
-    // Render the logs
-    renderLogs();
-}
-
-// Update interactions
-function updateInteractions(interaction) {
-    if (!interaction) return;
-    
-    // Process the interaction object
-    let prompt = '';
-    let response = '';
-    let timestamp = '';
-    
-    if (interaction.prompt && typeof interaction.prompt === 'object') {
-        prompt = interaction.prompt.content || '';
-        timestamp = interaction.prompt.timestamp || '';
-    } else if (typeof interaction.prompt === 'string') {
-        prompt = interaction.prompt;
-    }
-    
-    if (interaction.response && typeof interaction.response === 'object') {
-        response = interaction.response.content || '';
-    } else if (typeof interaction.response === 'string') {
-        response = interaction.response;
-    }
-    
-    // Only add if we have both prompt and response
-    if (prompt && response) {
-        const newInteraction = {
-            prompt: {
-                content: prompt,
-                timestamp: timestamp || new Date().toISOString()
-            },
-            response: {
-                content: response,
-                timestamp: new Date().toISOString()
-            }
-        };
+        const startDate = new Date(startTime);
+        const now = new Date();
+        const uptime = now - startDate;
         
-        // Add to interactions if it's new
-        if (!hasInteraction(newInteraction)) {
-            state.interactions.push(newInteraction);
-            
-            // Limit to max interactions
-            if (state.interactions.length > CONFIG.maxInteractions) {
-                state.interactions = state.interactions.slice(-CONFIG.maxInteractions);
-            }
-            
-            // Show the latest interaction
-            state.currentInteractionIndex = state.interactions.length - 1;
-            showCurrentInteraction();
-            updateInteractionControls();
-        }
-    }
-}
-
-// Check if an interaction already exists in the state
-function hasInteraction(newInteraction) {
-    return state.interactions.some(interaction => {
-        return interaction.prompt.content === newInteraction.prompt.content &&
-               interaction.response.content === newInteraction.response.content;
-    });
-}
-
-// Update the progress tracker
-function updateProgressTracker(stage) {
-    elements.progressSteps.forEach(step => {
-        const stepStage = step.dataset.stage;
-        step.classList.remove('active', 'completed');
+        // Calculate uptime in a human-readable format
+        const minutes = Math.floor(uptime / (1000 * 60));
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
         
-        if (stepStage === stage) {
-            step.classList.add('active');
+        let uptimeText = '';
+        if (days > 0) {
+            uptimeText = `${days}d ${hours % 24}h ${minutes % 60}m`;
+        } else if (hours > 0) {
+            uptimeText = `${hours}h ${minutes % 60}m`;
         } else {
-            // Check if this step should be marked as completed
-            const stages = ['Initialize', 'Research', 'Analyze', 'Develop', 'Finalize'];
-            const currentIndex = stages.indexOf(stage);
-            const stepIndex = stages.indexOf(stepStage);
-            
-            if (stepIndex < currentIndex) {
-                step.classList.add('completed');
-            }
+            uptimeText = `${minutes}m`;
         }
-    });
-}
-
-// Update the last updated timestamp
-function updateLastUpdated() {
-    state.lastUpdated = new Date();
-    const formattedTime = formatDateTime(state.lastUpdated);
-    elements.lastUpdated.textContent = formattedTime;
-    elements.footerLastUpdated.textContent = formattedTime;
-}
-
-// Update action count
-function updateActionCount() {
-    const actionCount = state.logs.filter(log => log.type === 'action').length;
-    elements.agentActionsCount.textContent = actionCount;
-}
-
-// -------------- Rendering Functions --------------
-
-// Render logs with current filter and pagination
-function renderLogs() {
-    // Get filtered logs
-    const filteredLogs = state.logFilter === 'all' 
-        ? state.logs 
-        : state.logs.filter(log => log.type === state.logFilter);
-    
-    console.log(`Rendering logs: ${filteredLogs.length} filtered logs out of ${state.logs.length} total logs`);
-    
-    // Update pagination info
-    state.totalLogsPages = Math.max(1, Math.ceil(filteredLogs.length / CONFIG.logsPerPage));
-    if (state.logsPage > state.totalLogsPages) {
-        state.logsPage = Math.max(1, state.totalLogsPages);
-    }
-    
-    // Get logs for current page
-    const startIndex = (state.logsPage - 1) * CONFIG.logsPerPage;
-    const endIndex = startIndex + CONFIG.logsPerPage;
-    const pageData = filteredLogs.slice(startIndex, endIndex);
-    
-    console.log(`Page ${state.logsPage}/${state.totalLogsPages}: Showing logs ${startIndex+1}-${Math.min(endIndex, filteredLogs.length)} of ${filteredLogs.length}`);
-    
-    // Clear table
-    elements.logsBody.innerHTML = '';
-    
-    // Add logs to table
-    if (pageData.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="3" class="text-center">No logs available</td>';
-        elements.logsBody.appendChild(row);
-    } else {
-        pageData.forEach(log => {
-            const row = document.createElement('tr');
-            
-            const timeCell = document.createElement('td');
-            timeCell.textContent = formatTime(log.timestamp);
-            
-            const typeCell = document.createElement('td');
-            const typeSpan = document.createElement('span');
-            typeSpan.textContent = log.type.toUpperCase();
-            typeSpan.className = `badge badge-${log.type}`;
-            typeCell.appendChild(typeSpan);
-            
-            const messageCell = document.createElement('td');
-            messageCell.textContent = log.message;
-            
-            row.appendChild(timeCell);
-            row.appendChild(typeCell);
-            row.appendChild(messageCell);
-            
-            elements.logsBody.appendChild(row);
-        });
-    }
-    
-    // Update pagination buttons
-    updateLogsPaginationControls();
-}
-
-// Update the interaction controls
-function updateInteractionControls() {
-    // Update interaction counter
-    elements.interactionPageInfo.textContent = state.interactions.length > 0
-        ? `Interaction ${state.currentInteractionIndex + 1} of ${state.interactions.length}`
-        : 'No interactions';
-    
-    // Update button states
-    elements.prevInteraction.disabled = state.currentInteractionIndex <= 0;
-    elements.nextInteraction.disabled = state.currentInteractionIndex >= state.interactions.length - 1;
-}
-
-// Show the current interaction
-function showCurrentInteraction() {
-    if (state.interactions.length === 0) {
-        elements.interactionPrompt.textContent = 'No prompt available';
-        elements.interactionResponse.innerHTML = 'No response available';
-        elements.interactionTimestamp.textContent = 'No timestamp available';
-        return;
-    }
-    
-    const interaction = state.interactions[state.currentInteractionIndex];
-    
-    // Update prompt
-    elements.interactionPrompt.textContent = interaction.prompt.content || 'No prompt content';
-    
-    // Update response (with markdown formatting)
-    try {
-        elements.interactionResponse.innerHTML = marked.parse(interaction.response.content || 'No response content');
+        
+        elements.agentUptime.textContent = uptimeText;
     } catch (error) {
-        elements.interactionResponse.textContent = interaction.response.content || 'No response content';
-    }
-    
-    // Update timestamp
-    elements.interactionTimestamp.textContent = `Interaction at ${formatDateTime(interaction.prompt.timestamp)}`;
-    
-    // Apply syntax highlighting
-    document.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block);
-    });
-}
-
-// Show the latest interaction
-function showLatestInteraction() {
-    if (state.interactions.length > 0) {
-        state.currentInteractionIndex = state.interactions.length - 1;
-        showCurrentInteraction();
-        updateInteractionControls();
+        console.error('Error calculating uptime:', error);
+        elements.agentUptime.textContent = 'Unknown';
     }
 }
 
-// Render the timeline
-function renderTimeline(timelineGroups) {
-    elements.timelineContainer.innerHTML = '';
-    
-    if (!timelineGroups || timelineGroups.length === 0) {
-        elements.timelineContainer.innerHTML = '<div class="text-center p-4">No timeline data available</div>';
-        return;
-    }
-    
-    timelineGroups.forEach(group => {
-        const entry = document.createElement('div');
-        entry.className = 'timeline-entry';
-        
-        const icon = document.createElement('div');
-        icon.className = `timeline-icon ${group.logType}`;
-        
-        const content = document.createElement('div');
-        content.className = 'timeline-content';
-        
-        const time = document.createElement('div');
-        time.className = 'timeline-time';
-        time.textContent = formatDateTime(group.startTime);
-        
-        const title = document.createElement('div');
-        title.className = 'timeline-title';
-        title.textContent = group.activity;
-        
-        const details = document.createElement('div');
-        details.className = 'timeline-details';
-        details.textContent = group.details[0];
-        if (group.count > 1) {
-            details.textContent += ` (and ${group.count - 1} more actions)`;
-        }
-        
-        content.appendChild(time);
-        content.appendChild(title);
-        content.appendChild(details);
-        
-        entry.appendChild(icon);
-        entry.appendChild(content);
-        
-        elements.timelineContainer.appendChild(entry);
-    });
+// Update last updated time
+function updateLastUpdated() {
+    const now = new Date();
+    state.lastUpdated = now;
+    elements.lastUpdated.textContent = now.toLocaleTimeString();
 }
 
-// Update the logs pagination controls
-function updateLogsPaginationControls() {
-    elements.logsPageInfo.textContent = `Page ${state.logsPage} of ${state.totalLogsPages}`;
-    
-    elements.logsFirstPage.disabled = state.logsPage <= 1;
-    elements.logsPrevPage.disabled = state.logsPage <= 1;
-    elements.logsNextPage.disabled = state.logsPage >= state.totalLogsPages;
-    elements.logsLastPage.disabled = state.logsPage >= state.totalLogsPages;
-}
-
-// -------------- Event Handlers --------------
-
-// Show previous interaction
-function showPreviousInteraction() {
-    if (state.currentInteractionIndex > 0) {
-        state.currentInteractionIndex--;
-        showCurrentInteraction();
-        updateInteractionControls();
-    }
-}
-
-// Show next interaction
-function showNextInteraction() {
-    if (state.currentInteractionIndex < state.interactions.length - 1) {
-        state.currentInteractionIndex++;
-        showCurrentInteraction();
-        updateInteractionControls();
-    }
-}
-
-// Clear logs
-function clearLogs() {
-    if (confirm('Are you sure you want to clear the logs display? This does not delete the logs from the agent.')) {
-        state.logs = [];
-        renderLogs();
-    }
-}
-
-// Filter logs by type
-function filterLogs(filterType) {
-    state.logFilter = filterType;
-    state.logsPage = 1;
-    
-    // Update filter buttons
-    elements.logFilters.forEach(filter => {
-        filter.classList.toggle('active', filter.dataset.filter === filterType);
-    });
-    
-    console.log(`Filtering logs by: ${filterType}. Total logs: ${state.logs.length}`);
-    renderLogs();
-}
-
-// Go to a specific logs page
-function goToLogsPage(page) {
-    if (page < 1 || page > state.totalLogsPages) return;
-    
-    state.logsPage = page;
-    renderLogs();
-}
-
-// Refresh the timeline
-function refreshTimeline() {
-    generateTimeline();
-}
-
-// Refresh memory
-function refreshMemory() {
-    fetchMemory().then(memory => {
-        updateMemory(memory);
-    });
-}
-
-// Show an error message
+// Show error message
 function showError(message) {
     console.error(message);
-    // Add to logs if available
-    if (state.logs) {
-        const errorLog = {
-            type: 'error',
-            message: message,
-            timestamp: new Date().toISOString()
-        };
-        state.logs.push(errorLog);
-        renderLogs();
+    alert(message);
+}
+
+// Format time for display
+function formatTime(timestamp) {
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString();
+    } catch (error) {
+        return 'Invalid time';
     }
 }
 
-// -------------- Helper Functions --------------
-
-// Format timestamp to date and time
+// Format date and time for display
 function formatDateTime(timestamp) {
-    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-    return date.toLocaleString([], {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+    } catch (error) {
+        return 'Invalid date';
+    }
 }
 
-// Format timestamp to just time
-function formatTime(timestamp) {
-    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-    return date.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-}
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', init);
 
-// Initialize the dashboard when the page loads
-document.addEventListener('DOMContentLoaded', initDashboard);
