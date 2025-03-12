@@ -73,6 +73,9 @@ None yet. I'm eager to learn and grow as I work toward my goal.
         # Get response from the model
         response = self.model.query(prompt)
         
+        # Check if there's a discovery declaration in the response
+        self._check_for_discovery(response)
+        
         # Update memory with the response
         self.memory.update_with_action(response)
         
@@ -88,6 +91,52 @@ None yet. I'm eager to learn and grow as I work toward my goal.
             self.model.web_server.log_interaction('action', 'Action cycle completed and memory updated')
             
         return response
+    
+    def _check_for_discovery(self, response):
+        """Check if the response contains a declaration of a new physics law discovery."""
+        # Look for the DISCOVERY_DECLARATION marker in the response
+        if "### DISCOVERY_DECLARATION" in response:
+            # Extract the discovery content
+            discovery_pattern = r'### DISCOVERY_DECLARATION\s*\n([\s\S]*?)(?=###|$)'
+            match = re.search(discovery_pattern, response)
+            
+            if match:
+                discovery_content = match.group(1).strip()
+                # Record the discovery
+                self.record_discovery(discovery_content)
+                logger.info(f"New law of physics discovered and recorded!")
+                
+                # Log to web interface if model has web server
+                if hasattr(self.model, 'web_server') and self.model.web_server:
+                    self.model.web_server.log_interaction('discovery', 'New law of physics discovered and recorded in findings.txt!')
+    
+    def record_discovery(self, discovery_content):
+        """Record a confirmed new law of physics discovery to findings.txt."""
+        try:
+            # Create the findings file
+            findings_file = "data/findings.txt"
+            
+            # Ensure data directory exists
+            os.makedirs(os.path.dirname(findings_file), exist_ok=True)
+            
+            # Create a formatted entry
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            formatted_discovery = f"""
+# New Law of Physics Discovered by {self.name}
+## Date of Discovery: {timestamp}
+
+{discovery_content}
+"""
+            
+            # Write the discovery
+            with open(findings_file, "w") as f:
+                f.write(formatted_discovery)
+                
+            logger.info(f"Discovery recorded to {findings_file}")
+            return True
+        except Exception as e:
+            logger.error(f"Error recording discovery: {e}")
+            return False
     
     def _build_action_prompt(self, memory_content):
         """Build the prompt for the action cycle."""
@@ -187,6 +236,25 @@ Explain what insights you gained from this action. This will update the "Insight
 
 ### Next Steps
 Outline your immediate next steps based on what you just learned. This will also contribute to updating the "Next Steps and Planning" section.
+
+## IMPORTANT: Declaring a Discovery
+If and ONLY if you have DEFINITIVELY discovered a new law of physics that is:
+1. Novel (not previously known in the field)
+2. Mathematically formulated
+3. Explains previously unexplained phenomena
+4. Has predictive power for new observations
+
+THEN, and only then, include an additional section:
+
+### DISCOVERY_DECLARATION
+[Detailed description of the new law of physics, including:
+- The formal statement of the law
+- The mathematical formulation
+- The phenomena it explains
+- Predictions it makes
+- How it was derived]
+
+DO NOT use the DISCOVERY_DECLARATION section for hypotheses, partial ideas, or anything that doesn't meet ALL of the criteria above. This will create a permanent record of your discovery in a dedicated findings.txt file.
 
 Please start each section with "### " followed by the exact section names provided above (e.g., "### Progress Assessment"), as this formatting is required for proper memory updates.
 

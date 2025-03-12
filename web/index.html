@@ -21,6 +21,15 @@
     </nav>
 
     <div class="container mt-4">
+        <!-- Discovery Banner - Only shown when something is discovered -->
+        <div id="discovery-banner" class="alert alert-success mb-4" style="display: none;">
+            <h4 class="alert-heading"><i class="fas fa-star me-2"></i>New Law of Physics Discovered!</h4>
+            <p>The agent has discovered a new law of physics. View the details below.</p>
+            <hr>
+            <div id="discovery-content"></div>
+            <button class="btn btn-success mt-2" onclick="showDiscoveryModal()">View Full Details</button>
+        </div>
+        
         <!-- Agent Info Panel -->
         <div class="row mb-4">
             <div class="col-md-4">

@@ -74,6 +74,23 @@ body {
     color: #721c24;
 }
 
+.log-type.discovery {
+    background-color: #d4edda;
+    color: #155724;
+    font-weight: bold;
+    border: 2px solid #28a745;
+    animation: discovery-glow 2s infinite alternate;
+}
+
+@keyframes discovery-glow {
+    from {
+        box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    }
+    to {
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+    }
+}
+
 /* Code and prompt styling */
 .code-block {
     background-color: #f8f9fa;

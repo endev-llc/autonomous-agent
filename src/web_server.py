@@ -4,6 +4,7 @@ Web server module to expose agent state and provide a dashboard interface.
 import os
 import json
 import threading
+import markdown
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from loguru import logger
@@ -64,13 +65,14 @@ class WebServer:
             })
         
         # API routes
-        @self.app.route('/api/agent-info')
+        @self.app.route('/api/agent')
         def agent_info():
             return jsonify({
                 'name': self.agent.name,
                 'goal': self.agent.goal,
                 'model': self.agent.model.model_id,
-                'startTime': datetime.now().isoformat()
+                'startTime': self.start_time.isoformat(),
+                'has_discovery': self.has_discovery()
             })
         
         @self.app.route('/api/memory')
@@ -110,6 +112,23 @@ class WebServer:
         def interactions_history():
             limit = request.args.get('limit', default=50, type=int)
             return jsonify(self.interactions_history[-limit:] if limit > 0 else self.interactions_history)
+        
+        # Findings endpoint - to get the discovery if it exists
+        @self.app.route('/api/findings')
+        def get_findings():
+            findings = self.get_findings_content()
+            if findings:
+                return jsonify({
+                    'exists': True,
+                    'content': findings,
+                    'html': markdown.markdown(findings)
+                })
+            else:
+                return jsonify({
+                    'exists': False,
+                    'content': "",
+                    'html': ""
+                })
     
     def log_interaction(self, log_type, message):
         """Log an interaction for the dashboard."""
@@ -197,3 +216,20 @@ class WebServer:
             self.app.run(host=self.host, port=self.port, debug=False, use_reloader=False)
         except Exception as e:
             logger.error(f"Error starting web server: {e}")
+
+    def has_discovery(self):
+        """Check if a findings.txt file exists."""
+        findings_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findings.txt')
+        return os.path.exists(findings_file) and os.path.getsize(findings_file) > 0
+        
+    def get_findings_content(self):
+        """Get the content of the findings.txt file if it exists."""
+        try:
+            findings_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findings.txt')
+            if os.path.exists(findings_file) and os.path.getsize(findings_file) > 0:
+                with open(findings_file, 'r') as f:
+                    return f.read()
+            return ""
+        except Exception as e:
+            logger.error(f"Error reading findings file: {e}")
+            return ""

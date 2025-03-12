@@ -12,7 +12,8 @@ const state = {
     logs: [],
     interactions: [],
     lastUpdated: null,
-    currentActivity: "Initializing..."
+    currentActivity: "Initializing...",
+    hasDiscovery: false
 };
 
 // DOM Elements
@@ -49,16 +50,44 @@ const elements = {
     lastUpdated: document.getElementById('last-updated')
 };
 
-// Initialize the dashboard
-function init() {
-    // Set up event listeners
-    setupEventListeners();
-    
-    // Fetch initial data
-    fetchInitialData();
-    
-    // Start polling for updates
-    setInterval(pollForUpdates, CONFIG.pollInterval);
+// Initialize the application
+async function init() {
+    try {
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Set up polling intervals
+        setPollingIntervals();
+        
+        // Initial data fetch
+        await Promise.all([
+            fetchAgentInfo(),
+            fetchMemory(),
+            fetchLogs(),
+            fetchInteractions()
+        ]);
+        
+        // Check for discoveries
+        if (state.agentInfo && state.agentInfo.has_discovery) {
+            state.hasDiscovery = true;
+            await fetchDiscovery();
+        }
+        
+        // Update the UI
+        updateAllUI();
+        
+        // Log that we're initialized
+        console.log('Dashboard initialized successfully');
+        
+        // Hide loading indicator if we have one
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
+    }
 }
 
 // Set up event listeners
@@ -67,53 +96,6 @@ function setupEventListeners() {
     elements.refreshMemory.addEventListener('click', fetchMemory);
     elements.refreshLogs.addEventListener('click', fetchLogs);
     elements.refreshInteractions.addEventListener('click', fetchInteractions);
-}
-
-// Fetch initial data
-async function fetchInitialData() {
-    try {
-        // Fetch agent info
-        await fetchAgentInfo();
-        
-        // Fetch memory
-        await fetchMemory();
-        
-        // Fetch logs
-        await fetchLogs();
-        
-        // Fetch interactions
-        await fetchInteractions();
-        
-        // Update agent status
-        updateAgentStatus('online');
-        
-        // Update last updated time
-        updateLastUpdated();
-    } catch (error) {
-        console.error('Error fetching initial data:', error);
-        updateAgentStatus('offline');
-        showError('Failed to connect to agent API. Is the agent running?');
-    }
-}
-
-// Poll for updates
-async function pollForUpdates() {
-    try {
-        // Check for new logs
-        await fetchLogs();
-        
-        // Check for new interactions
-        await fetchInteractions();
-        
-        // Update agent status
-        updateAgentStatus('online');
-        
-        // Update last updated time
-        updateLastUpdated();
-    } catch (error) {
-        console.error('Error polling for updates:', error);
-        updateAgentStatus('offline');
-    }
 }
 
 // Fetch agent information
@@ -126,9 +108,34 @@ async function fetchAgentInfo() {
         const data = await response.json();
         state.agentInfo = data;
         updateAgentInfo();
+        
+        // Check if there's a discovery
+        if (data.has_discovery && !state.hasDiscovery) {
+            state.hasDiscovery = true;
+            await fetchDiscovery();
+        }
         return data;
     } catch (error) {
         console.error('Error fetching agent info:', error);
+        throw error;
+    }
+}
+
+// Fetch discovery
+async function fetchDiscovery() {
+    try {
+        const response = await fetch(`${CONFIG.apiBaseUrl}/findings`);
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.exists) {
+            document.getElementById('discovery-banner').style.display = 'block';
+            document.getElementById('discovery-content').innerHTML = data.html;
+        }
+        return data;
+    } catch (error) {
+        console.error('Error fetching discovery:', error);
         throw error;
     }
 }
@@ -481,6 +488,91 @@ function formatDateTime(timestamp) {
     } catch (error) {
         return 'Invalid date';
     }
+}
+
+// Check if there's a new discovery
+async function checkForDiscovery() {
+    if (state.hasDiscovery) return; // Already know about it
+    
+    const response = await fetch(`${CONFIG.apiBaseUrl}/agent`);
+    if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.has_discovery && !state.hasDiscovery) {
+        state.hasDiscovery = true;
+        await fetchDiscovery();
+    }
+}
+
+// Show discovery modal
+function showDiscoveryModal() {
+    fetch(`${CONFIG.apiBaseUrl}/findings`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                const modalContent = document.getElementById('common-modal-body');
+                const modalTitle = document.getElementById('common-modal-title');
+                
+                modalTitle.innerText = 'New Law of Physics Discovered!';
+                modalContent.innerHTML = data.html;
+                
+                const commonModal = new bootstrap.Modal(document.getElementById('common-modal'));
+                commonModal.show();
+            }
+        })
+        .catch(error => console.error('Error showing discovery modal:', error));
+}
+
+// Set up polling intervals
+function setPollingIntervals() {
+    // Set up periodic updates
+    setInterval(async () => {
+        try {
+            await fetchAgentInfo();
+            updateAgentInfo();
+        } catch (error) {
+            console.error('Error fetching agent info:', error);
+        }
+    }, 10000); // Every 10 seconds
+    
+    setInterval(async () => {
+        try {
+            await fetchMemory();
+            updateMemoryDisplay();
+        } catch (error) {
+            console.error('Error fetching memory:', error);
+        }
+    }, 10000); // Every 10 seconds
+    
+    setInterval(async () => {
+        try {
+            await fetchLogs();
+            updateLogs();
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+        }
+    }, 5000); // Every 5 seconds
+    
+    setInterval(async () => {
+        try {
+            await fetchInteractions();
+            updateInteractions();
+        } catch (error) {
+            console.error('Error fetching interactions:', error);
+        }
+    }, 15000); // Every 15 seconds
+    
+    // Check for discoveries
+    setInterval(checkForDiscovery, 10000); // Every 10 seconds
+}
+
+// Update all UI elements
+function updateAllUI() {
+    updateAgentInfo();
+    updateMemoryDisplay();
+    updateLogs();
+    updateInteractions();
 }
 
 // Initialize when DOM is ready
