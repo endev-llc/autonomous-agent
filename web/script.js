@@ -76,6 +76,9 @@ async function init() {
         // Update the UI
         updateAllUI();
         
+        // Update agent status to online
+        updateAgentStatus('online');
+        
         // Log that we're initialized
         console.log('Dashboard initialized successfully');
         
@@ -101,7 +104,7 @@ function setupEventListeners() {
 // Fetch agent information
 async function fetchAgentInfo() {
     try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/agent-info`);
+        const response = await fetch(`${CONFIG.apiBaseUrl}/agent`);
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
         }
@@ -168,6 +171,7 @@ async function fetchLogs() {
         state.logs = data;
         updateLogsDisplay();
         updateCurrentActivity();
+        updateLastUpdated();
         return data;
     } catch (error) {
         console.error('Error fetching logs:', error);
@@ -189,6 +193,7 @@ async function fetchInteractions() {
             state.interactions = data;
             updateInteractionsDisplay();
         }
+        updateLastUpdated();
         return data;
     } catch (error) {
         console.error('Error fetching interactions:', error);
@@ -573,6 +578,19 @@ function updateAllUI() {
     updateMemoryDisplay();
     updateLogs();
     updateInteractions();
+}
+
+// Update logs (wrapper function)
+function updateLogs() {
+    updateLogsDisplay();
+    updateCurrentActivity();
+    updateLastUpdated();
+}
+
+// Update interactions (wrapper function)
+function updateInteractions() {
+    updateInteractionsDisplay();
+    updateLastUpdated();
 }
 
 // Initialize when DOM is ready

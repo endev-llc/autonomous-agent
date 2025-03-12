@@ -37,6 +37,7 @@ class WebServer:
         self.latest_response = None
         self.interactions_history = []  # Store complete interaction history
         self.max_interactions = 50      # Maximum number of stored interactions
+        self.start_time = datetime.now()  # Record when the server started
         
         self._setup_routes()
         
