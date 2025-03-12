@@ -75,26 +75,3 @@ class Memory:
         except Exception as e:
             logger.error(f"Error updating memory with action: {e}")
             return False
-    
-    def update_with_reflection(self, reflection_result):
-        """Update memory with the result of a reflection."""
-        try:
-            current_memory = self.read()
-            
-            # Add reflection with timestamp
-            reflection_header = f"\n\n## Reflection at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            updated_content = current_memory + reflection_header + reflection_result
-            
-            # Manage token limit
-            if len(updated_content) > self.max_tokens * 4:
-                half_keep = self.max_tokens * 2
-                updated_content = (
-                    updated_content[:half_keep] +
-                    "\n\n[...Memory truncated...]\n\n" +
-                    updated_content[-half_keep:]
-                )
-            
-            return self.write(updated_content)
-        except Exception as e:
-            logger.error(f"Error updating memory with reflection: {e}")
-            return False

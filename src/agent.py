@@ -8,7 +8,6 @@ from loguru import logger
 
 from model_interface import ModelInterface
 from memory import Memory
-from reflection import Reflection
 
 class Agent:
     """
@@ -23,7 +22,6 @@ class Agent:
         # Initialize components
         self.memory = Memory(config["memory"])
         self.model = ModelInterface(config["model"])
-        self.reflection = Reflection(self)
         
         # Initialize memory if it doesn't exist
         if not self.memory.exists():
@@ -90,20 +88,6 @@ None yet. I'm eager to learn and grow as I work toward my goal.
             self.model.web_server.log_interaction('action', 'Action cycle completed and memory updated')
             
         return response
-    
-    def run_reflection(self):
-        """Run a reflection cycle to assess progress and update strategy."""
-        logger.info("Running reflection cycle")
-        reflection_result = self.reflection.perform_reflection()
-        logger.info("Reflection completed")
-        
-        # Log to web interface if model has web server
-        if hasattr(self.model, 'web_server') and self.model.web_server:
-            self.model.web_server.log_interaction('reflection', 'Reflection cycle completed and memory updated')
-        
-        return reflection_result
-    
-
     
     def _build_action_prompt(self, memory_content):
         """Build the prompt for the action cycle."""
@@ -201,10 +185,10 @@ Focus on moving closer to your goal with each action.
             return ""
     
     def _extract_recent_sections(self, content, num_sections=3):
-        """Extract the most recent action and reflection sections."""
+        """Extract the most recent action sections."""
         try:
-            # Find all action and reflection sections
-            pattern = r"##\s+(?:Action|Reflection)\s+.*?\n([\s\S]*?)(?:\n##|$)"
+            # Find all action sections
+            pattern = r"##\s+(?:Action)\s+.*?\n([\s\S]*?)(?:\n##|$)"
             matches = re.finditer(pattern, content)
             
             # Get the last n sections

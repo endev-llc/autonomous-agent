@@ -71,12 +71,7 @@ body {
 
 .log-type.error {
     background-color: #f8d7da;
-    color: #842029;
-}
-
-.log-type.reflection {
-    background-color: #e2e3e5;
-    color: #41464b;
+    color: #721c24;
 }
 
 /* Code and prompt styling */

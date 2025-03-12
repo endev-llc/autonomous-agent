@@ -1,7 +1,6 @@
 agent:
   name: "AutonomousAgent"
   goal: "Discover a new law of physics by exploring theoretical inconsistencies in current models, seeking patterns in existing data, and proposing novel mathematical frameworks that could explain observed phenomena. Develop, test, and refine hypotheses through thought experiments and logical reasoning. Document your process, insights, and ultimately formulate a coherent new physical law or theory."
-  reflection_interval: 0.04  # (in hours)
   action_interval: 0.008  # (in hours)
 
 model:

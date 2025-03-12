@@ -52,11 +52,6 @@ def main():
     # Schedule regular actions
     schedule.every(config["agent"]["action_interval"]).hours.do(agent.run_action_cycle)
     
-    # Schedule reflection
-    schedule.every(config["agent"]["reflection_interval"]).hours.do(agent.run_reflection)
-    
-
-    
     # Initial action to start the process
     agent.run_action_cycle()
     
