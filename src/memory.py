@@ -47,17 +47,29 @@ class Memory:
             return False
     
     def update_with_action(self, action_result):
-        """Update memory with the result of an action."""
+        """Update memory with the result of an action.
+        
+        This function overwrites any existing 'Action Taken' entry with the new action.
+        """
         try:
             memory_content = self.read()
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            new_action_entry = f"## Action Taken at {timestamp}\n{action_result}\n"
             
-            # Add action result with timestamp
-            updated_content = f"{memory_content}\n\n## Action Taken at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n{action_result}\n"
+            # If any Action Taken entries exist, remove them.
+            if "## Action Taken at" in memory_content:
+                memory_content = memory_content.split("## Action Taken at")[0].rstrip()
+            
+            updated_content = memory_content + "\n\n" + new_action_entry
             
             # Simple token management (approximation)
             if len(updated_content) > self.max_tokens * 4:  # Rough approximation
                 half_keep = self.max_tokens * 2
-                updated_content = updated_content[:half_keep] + "\n\n[...Memory truncated...]\n\n" + updated_content[-half_keep:]
+                updated_content = (
+                    updated_content[:half_keep] +
+                    "\n\n[...Memory truncated...]\n\n" +
+                    updated_content[-half_keep:]
+                )
             
             return self.write(updated_content)
         except Exception as e:
@@ -76,7 +88,11 @@ class Memory:
             # Manage token limit
             if len(updated_content) > self.max_tokens * 4:
                 half_keep = self.max_tokens * 2
-                updated_content = updated_content[:half_keep] + "\n\n[...Memory truncated...]\n\n" + updated_content[-half_keep:]
+                updated_content = (
+                    updated_content[:half_keep] +
+                    "\n\n[...Memory truncated...]\n\n" +
+                    updated_content[-half_keep:]
+                )
             
             return self.write(updated_content)
         except Exception as e:
