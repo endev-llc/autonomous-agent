@@ -167,22 +167,36 @@ Based on your memory and goal, please:
 3. Execute that action
 4. Report the outcome and what you learned
 
-Provide your response in a clear, structured format that can be easily integrated into your memory.
+## Response Format
+Please structure your response with the following sections to help me update my memory effectively:
+
+### Progress Assessment
+Provide a concise assessment of your current progress toward your goal. This will update the "Progress Summary" section of your memory.
+
+### Next Action
+Detail the specific actions you will take next. This will update the "Next Steps and Planning" section of your memory.
+
+### Execute Action
+Describe how you executed the action and what happened.
+
+### Outcome and Learning Report
+Summarize the outcomes of your action and what you learned from it. This will update the "Recent Actions and Outcomes" section of your memory.
+
+### Learnings
+Explain what insights you gained from this action. This will update the "Insights and Learnings" section.
+
+### Next Steps
+Outline your immediate next steps based on what you just learned. This will also contribute to updating the "Next Steps and Planning" section.
+
+Please start each section with "### " followed by the exact section names provided above (e.g., "### Progress Assessment"), as this formatting is required for proper memory updates.
+
 Focus on moving closer to your goal with each action.
 """
     
     def _extract_section(self, content, section_name):
         """Extract a specific section from the memory content."""
-        try:
-            # Match section header and content up to the next section header
-            pattern = rf"## {section_name}\n([\s\S]*?)(?:\n## |$)"
-            match = re.search(pattern, content)
-            if match:
-                return match.group(1).strip()
-            return ""
-        except Exception as e:
-            logger.error(f"Error extracting section {section_name}: {e}")
-            return ""
+        # Reuse memory's extract section method
+        return self.memory._extract_section(content, section_name)
     
     def _extract_recent_sections(self, content, num_sections=3):
         """Extract the most recent action sections."""
@@ -199,3 +213,47 @@ Focus on moving closer to your goal with each action.
         except Exception as e:
             logger.error(f"Error extracting recent sections: {e}")
             return ""
+            
+    def test_memory_update(self):
+        """Run a single action cycle and log memory changes for testing."""
+        logger.info("Running memory update test")
+        
+        # Read initial memory
+        initial_memory = self.memory.read()
+        
+        # Extract initial sections for comparison
+        initial_sections = {
+            "Progress Summary": self._extract_section(initial_memory, "Progress Summary"),
+            "Recent Actions and Outcomes": self._extract_section(initial_memory, "Recent Actions and Outcomes"),
+            "Next Steps and Planning": self._extract_section(initial_memory, "Next Steps and Planning"),
+            "Insights and Learnings": self._extract_section(initial_memory, "Insights and Learnings")
+        }
+        
+        # Run action cycle
+        logger.info("Starting action cycle")
+        self.run_action_cycle()
+        
+        # Read updated memory
+        updated_memory = self.memory.read()
+        
+        # Extract updated sections
+        updated_sections = {
+            "Progress Summary": self._extract_section(updated_memory, "Progress Summary"),
+            "Recent Actions and Outcomes": self._extract_section(updated_memory, "Recent Actions and Outcomes"),
+            "Next Steps and Planning": self._extract_section(updated_memory, "Next Steps and Planning"),
+            "Insights and Learnings": self._extract_section(updated_memory, "Insights and Learnings")
+        }
+        
+        # Log changes
+        for section in initial_sections:
+            if initial_sections[section] != updated_sections[section]:
+                logger.info(f"Section '{section}' was updated")
+                logger.info(f"Before: {initial_sections[section]}")
+                logger.info(f"After: {updated_sections[section]}")
+            else:
+                logger.info(f"Section '{section}' was NOT updated")
+        
+        return {
+            "initial": initial_sections,
+            "updated": updated_sections
+        }
