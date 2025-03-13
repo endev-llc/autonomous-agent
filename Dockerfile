@@ -9,8 +9,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Make sure the web directory exists and has proper permissions
+# Make sure all required directories exist with proper permissions
 RUN mkdir -p /app/web && chmod -R 755 /app/web
+RUN mkdir -p /app/data/findings && chmod -R 755 /app/data/findings
+RUN mkdir -p /app/data/connections && chmod -R 755 /app/data/connections
+RUN mkdir -p /app/data/search_results && chmod -R 755 /app/data/search_results
+RUN mkdir -p /app/data/analyses && chmod -R 755 /app/data/analyses
 
 # Environment variables (override with docker-compose or at runtime)
 ENV OPENAI_API_KEY="your-api-key-here"

@@ -25,9 +25,26 @@ def load_config():
     with open("config.yaml", "r") as f:
         return yaml.safe_load(f)
 
+def create_data_directories():
+    """Create necessary data directories."""
+    directories = [
+        "data",
+        "data/findings",
+        "data/connections",
+        "data/search_results",
+        "data/analyses"
+    ]
+    
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
+        logger.debug(f"Created directory: {directory}")
+
 def main():
     """Main function to run the autonomous agent."""
     logger.info("Starting autonomous agent")
+    
+    # Create data directories
+    create_data_directories()
     
     # Load configuration
     config = load_config()
@@ -50,7 +67,8 @@ def main():
     logger.info("Web server started")
     
     # Schedule regular actions
-    schedule.every(config["agent"]["action_interval"]).hours.do(agent.run_action_cycle)
+    action_interval_hours = float(config["agent"]["action_interval"])
+    schedule.every(action_interval_hours).hours.do(agent.run_action_cycle)
     
     # Initial action to start the process
     agent.run_action_cycle()
@@ -58,6 +76,9 @@ def main():
     # Log the startup
     web_server.log_interaction('info', f'Agent "{agent.name}" initialized with goal: {agent.goal}')
     web_server.log_interaction('info', f'Using model: {agent.model.model_id}')
+    web_server.log_interaction('info', f'Action interval: {action_interval_hours} hours')
+    web_server.log_interaction('info', f'Web search capability: Enabled')
+    web_server.log_interaction('info', f'Findings and connections recording: Enabled')
     
     # Main loop
     logger.info("Agent is running. Web dashboard available at http://localhost:3000")

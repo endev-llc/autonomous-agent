@@ -5,8 +5,10 @@ agent:
 
 model:
   provider: "openai"
-  model_id: "gpt-4o-2024-08-06"
-
+  model_id: "gpt-4o-search-preview"
+  web_search_enabled: true
+  max_search_tokens: 4000
+  max_analysis_tokens: 2000
 
 memory:
   max_tokens: 16000
@@ -16,3 +18,4 @@ memory:
     - "Recent Actions and Outcomes"
     - "Next Steps and Planning"
     - "Insights and Learnings"
+    - "Web Search Topics"
