@@ -1,99 +1,71 @@
-#!/usr/bin/env python3
-"""
-Main entry point for the autonomous agent.
-"""
 import os
+import threading
 import time
-import schedule
-import yaml
-from loguru import logger
 from dotenv import load_dotenv
-
-from agent import Agent
-from utils import setup_logging
-from state_monitor import StateMonitor
-from web_server import WebServer
+from loguru import logger
 
 # Load environment variables
 load_dotenv()
 
-# Setup logging
-setup_logging()
+# Import after loading environment variables
+from agent import PhysicsArticleCurator
+from web_server import run_server
 
-def load_config():
-    """Load configuration from config.yaml."""
-    with open("config.yaml", "r") as f:
-        return yaml.safe_load(f)
-
-def create_data_directories():
-    """Create necessary data directories."""
-    directories = [
-        "data",
-        "data/findings",
-        "data/connections",
-        "data/search_results",
-        "data/analyses"
-    ]
+def start_web_server():
+    """Start the web server in a separate thread"""
+    logger.info("Starting web server thread")
     
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
-        logger.debug(f"Created directory: {directory}")
+    # Determine if we're in development mode
+    debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
+    
+    # Run the web server
+    run_server(host='0.0.0.0', port=5000, debug=debug_mode)
+
+def start_agent(run_once=False):
+    """Start the agent in the main thread"""
+    logger.info("Starting physics article curator agent")
+    
+    # Create and configure the agent
+    agent = PhysicsArticleCurator()
+    
+    # Run the agent once or continuously
+    if run_once:
+        agent.run_once()
+    else:
+        agent.run_forever()
 
 def main():
-    """Main function to run the autonomous agent."""
-    logger.info("Starting autonomous agent")
+    """Main entry point for the application"""
+    logger.info("Starting the Physics Article Curator application")
     
-    # Create data directories
-    create_data_directories()
+    # Check if the OpenAI API key is set
+    if not os.environ.get("OPENAI_API_KEY"):
+        logger.error("OPENAI_API_KEY environment variable not set")
+        print("Error: OPENAI_API_KEY environment variable is required but not set")
+        return
     
-    # Load configuration
-    config = load_config()
+    # Start the web server in a separate thread
+    web_thread = threading.Thread(target=start_web_server, daemon=True)
+    web_thread.start()
     
-    # Override configuration with environment variables if present
-    if "AGENT_GOAL" in os.environ:
-        config["agent"]["goal"] = os.environ["AGENT_GOAL"]
+    # Give the web server a moment to start
+    time.sleep(2)
     
-    # Initialize the agent
-    agent = Agent(config)
-
-    # Initialize the state monitor
-    state_monitor = StateMonitor()
-    logger.info("State monitor initialized")
+    # Check for special run modes
+    run_once = os.environ.get("RUN_ONCE", "false").lower() == "true"
+    web_only = os.environ.get("WEB_ONLY", "false").lower() == "true"
     
-    # Initialize and start the web server
-    web_server = WebServer(agent)
-    agent.model.set_web_server(web_server)
-    web_server.start()
-    logger.info("Web server started")
-    
-    # Schedule regular actions
-    action_interval_hours = float(config["agent"]["action_interval"])
-    schedule.every(action_interval_hours).hours.do(agent.run_action_cycle)
-    
-    # Initial action to start the process
-    agent.run_action_cycle()
-    
-    # Log the startup
-    web_server.log_interaction('info', f'Agent "{agent.name}" initialized with goal: {agent.goal}')
-    web_server.log_interaction('info', f'Using model: {agent.model.model_id}')
-    web_server.log_interaction('info', f'Action interval: {action_interval_hours} hours')
-    web_server.log_interaction('info', f'Web search capability: Enabled')
-    web_server.log_interaction('info', f'Findings and connections recording: Enabled')
-    
-    # Main loop
-    logger.info("Agent is running. Web dashboard available at http://localhost:3000")
-    logger.info("Press Ctrl+C to stop.")
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
-    except KeyboardInterrupt:
-        logger.info("Agent stopped by user")
-        web_server.log_interaction('info', 'Agent stopped by user')
-    except Exception as e:
-        logger.error(f"Error in main loop: {e}")
-        web_server.log_interaction('error', f'Error in main loop: {str(e)}')
-        raise
+    if web_only:
+        logger.info("Running in web-only mode (no agent)")
+        # Keep the main thread alive
+        try:
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            logger.info("Application stopped by user")
+    else:
+        # Start the agent in the main thread
+        start_agent(run_once=run_once)
 
 if __name__ == "__main__":
     main()

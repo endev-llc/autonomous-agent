@@ -1,876 +1,512 @@
-"""
-Agent module that coordinates the agent's operations.
-"""
 import os
+import time
 import json
+import yaml
+import random
 from datetime import datetime
-import re
+from typing import List, Dict, Any, Tuple
+import openai
 from loguru import logger
+from database import ArticleDatabase
 
-from model_interface import ModelInterface
-from memory import Memory
-
-class Agent:
-    """
-    Main agent class that orchestrates the agent's operations.
-    """
-    def __init__(self, config):
-        """Initialize the agent with configuration."""
-        self.config = config
-        self.name = config["agent"]["name"]
-        self.goal = config["agent"]["goal"]
+class PhysicsArticleCurator:
+    def __init__(self, config_path="config.yaml"):
+        """Initialize the agent with configuration"""
+        # Load configuration
+        self.config = self._load_config(config_path)
         
-        # Initialize components
-        self.memory = Memory(config["memory"])
-        self.model = ModelInterface(config["model"])
+        # Setup logging
+        self._setup_logging()
         
-        # Initialize memory if it doesn't exist
-        if not self.memory.exists():
-            self.initialize_memory()
-            
-        # Initialize findings log
-        self.findings_log = os.path.join("data", "findings", "findings_log.md")
-        if not os.path.exists(self.findings_log):
-            self._initialize_findings_log()
-            
-        # Initialize connections log
-        self.connections_log = os.path.join("data", "connections", "connections_log.md")
-        if not os.path.exists(self.connections_log):
-            self._initialize_connections_log()
-            
+        # Initialize database
+        self.db = ArticleDatabase()
+        
+        # Initialize OpenAI client
+        self._setup_openai()
+        
+        # Agent state
+        self.name = self.config["agent"]["name"]
+        self.goal = self.config["agent"]["goal"]
+        self.action_interval = self.config["agent"]["action_interval"] * 3600  # convert to seconds
+        
+        # Agent memory
+        self.memory = {
+            "Agent Identity and Goal": self._format_identity(),
+            "Recent Articles": [],
+            "Search Topics": self._get_initial_search_topics(),
+            "Statistics": {}
+        }
+        
         logger.info(f"Agent '{self.name}' initialized with goal: {self.goal}")
     
-    def initialize_memory(self):
-        """Initialize the agent's memory."""
-        initial_memory = f"""
-# {self.name} - Autonomous Agent Memory
-
-## Agent Identity and Goal
-- Name: {self.name}
-- Goal: {self.goal}
-- Created: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-## Progress Summary
-I am just beginning my journey. I have not yet taken any actions toward my goal.
-
-## Recent Actions and Outcomes
-No actions taken yet.
-
-## Next Steps and Planning
-1. Perform initial assessment of my capabilities
-2. Develop strategy to accomplish my goal
-3. Begin executing on the first steps of my plan
-
-## Insights and Learnings
-None yet. I'm eager to learn and grow as I work toward my goal.
-
-## Web Search Topics
-Potential topics to search for on the web:
-1. Current theoretical physics inconsistencies
-2. Unexplained physical phenomena
-3. Recent advances in theoretical physics
-4. Patterns in physical constants
-
-## Action Summaries
-Recent actions taken by the agent.
-"""
-        self.memory.write(initial_memory)
-        logger.info("Agent memory initialized")
-        
-    def _initialize_findings_log(self):
-        """Initialize the findings log file."""
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load configuration from YAML file"""
         try:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.findings_log), exist_ok=True)
-            
-            # Create the initial findings log
-            initial_content = f"""# {self.name} - Physics Findings Log
-
-## Overview
-This log contains all notable findings discovered by {self.name} in the pursuit of:
-
-**Goal**: {self.goal}
-
-*Created: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
-
-## Findings
-No findings recorded yet.
-
-"""
-            # Write to file
-            with open(self.findings_log, "w") as f:
-                f.write(initial_content)
-                
-            logger.info("Findings log initialized")
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Error initializing findings log: {e}")
+            logger.error(f"Error loading config: {e}")
+            # Return default config
+            return {
+                "agent": {
+                    "name": "PhysicsArticleCurator",
+                    "goal": "Find and analyze physics articles",
+                    "action_interval": 6  # hours
+                },
+                "model": {
+                    "provider": "openai",
+                    "model_id": "gpt-4o-search-preview",
+                    "web_search_enabled": True,
+                    "max_search_tokens": 4000,
+                    "max_analysis_tokens": 2000
+                },
+                "memory": {
+                    "max_tokens": 4000,
+                    "structure": [
+                        "Agent Identity and Goal",
+                        "Recent Articles",
+                        "Search Topics",
+                        "Statistics"
+                    ]
+                }
+            }
     
-    def _initialize_connections_log(self):
-        """Initialize the connections log file."""
+    def _setup_logging(self):
+        """Configure logging"""
+        os.makedirs("logs", exist_ok=True)
+        log_file = f"logs/agent_{datetime.now().strftime('%Y%m%d')}.log"
+        logger.add(log_file, rotation="1 day", retention="7 days", level="INFO")
+    
+    def _setup_openai(self):
+        """Initialize OpenAI client"""
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            logger.error("OPENAI_API_KEY environment variable not set")
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+        
+        self.client = openai.OpenAI(api_key=api_key)
+        logger.info("OpenAI client initialized")
+        
+        # Test if the client can access the responses API
         try:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.connections_log), exist_ok=True)
-            
-            # Create the initial connections log
-            initial_content = f"""# {self.name} - Connections Log
-
-## Overview
-This log contains connections between concepts, theories, and observations identified by {self.name} in the pursuit of:
-
-**Goal**: {self.goal}
-
-*Created: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
-
-## Connections
-No connections recorded yet.
-
-"""
-            # Write to file
-            with open(self.connections_log, "w") as f:
-                f.write(initial_content)
-                
-            logger.info("Connections log initialized")
+            # Make a simple call to test connectivity
+            test_response = self.client.responses.create(
+                model="gpt-4o",
+                input="Hello"
+            )
+            logger.info("OpenAI responses API test successful")
+            self.use_responses_api = True
         except Exception as e:
-            logger.error(f"Error initializing connections log: {e}")
+            logger.error(f"Error testing OpenAI responses API: {e}")
+            logger.warning("Falling back to chat completions API")
+            self.use_responses_api = False
     
-    def run_action_cycle(self):
-        """Run a single action cycle."""
-        logger.info("Running action cycle")
-        
-        # Read memory
-        memory_content = self.memory.read()
-        
-        # Prepare prompt for the model, using the improved focused prompt
-        prompt = self._build_focused_action_prompt(memory_content)
-        
-        # Log we're about to call the model
-        if hasattr(self.model, 'web_server') and self.model.web_server:
-            self.model.web_server.log_interaction('info', f'Running action cycle and sending prompt to model')
-        
-        # Get response from the model
-        response = self.model.query(prompt)
-        
-        # Check if there are web search commands in the response
-        search_queries = self._extract_search_queries(response)
-        if search_queries:
-            search_results = self._perform_web_searches(search_queries)
-            # Analyze search results and update response
-            analysis_result = self._analyze_search_results(search_queries, search_results)
-            response += f"\n\n### Web Search Results and Analysis\n{analysis_result}"
-        
-        # Ensure we capture and log findings - even if not explicitly marked
-        explicitly_marked_findings = self._extract_findings(response)
-        if not explicitly_marked_findings:
-            # If no explicit findings markers, extract implicit findings
-            implicit_findings = self._extract_implicit_findings(response)
-            if implicit_findings:
-                for finding in implicit_findings:
-                    self._record_finding(finding['title'], finding['content'])
-        else:
-            # Process explicitly marked findings
-            for finding in explicitly_marked_findings:
-                self._record_finding(finding['title'], finding['content'])
-        
-        # Check if there are connection commands in the response
-        connections = self._extract_connections(response)
-        if connections:
-            for connection in connections:
-                self._record_connection(connection['title'], connection['content'])
-        
-        # If no explicit connections found, try to extract implicit connections
-        if not connections:
-            implicit_connections = self._extract_implicit_connections(response)
-            if implicit_connections:
-                for connection in implicit_connections:
-                    self._record_connection(connection['title'], connection['content'])
-        
-        # Check if there's a discovery declaration in the response
-        self._check_for_discovery(response)
-        
-        # Update memory with the response, using a more efficient approach
-        self.memory.update_with_action_efficiently(response)
-        
-        # Log memory update
-        if hasattr(self.model, 'web_server') and self.model.web_server:
-            self.model.web_server.log_interaction('info', f'Updated memory with action result')
-        
-        # Log action
-        logger.info(f"Action completed, memory updated")
-        
-        # Log to web interface if model has web server
-        if hasattr(self.model, 'web_server') and self.model.web_server:
-            self.model.web_server.log_interaction('action', 'Action cycle completed and memory updated')
-            
-        return response
+    def _format_identity(self) -> str:
+        """Format agent identity for memory"""
+        return f"I am {self.name}, an autonomous agent. My goal is: {self.goal}"
     
-    def _extract_search_queries(self, response):
-        """Extract web search queries from response."""
-        search_pattern = r'### WEB_SEARCH\s*\n(.*?)(?=###|$)'
-        matches = re.finditer(search_pattern, response, re.DOTALL)
-        
-        queries = []
-        for match in matches:
-            query_text = match.group(1).strip()
-            # Split by lines and remove empty lines
-            query_lines = [line.strip() for line in query_text.split('\n') if line.strip()]
-            queries.extend(query_lines)
-            
-        return queries
-        
-    def _perform_web_searches(self, queries):
-        """Perform web searches for a list of queries."""
-        results = {}
-        
-        for query in queries:
-            logger.info(f"Performing web search: {query}")
-            
-            # Log to web interface if model has web server
-            if hasattr(self.model, 'web_server') and self.model.web_server:
-                self.model.web_server.log_interaction('search', f'Searching for: {query}')
-                
-            # Perform the search
-            search_result = self.model.web_search(query)
-            
-            # Store the result
-            results[query] = search_result
-            
-        return results
-    
-    def _analyze_search_results(self, queries, results):
-        """Analyze the collected search results."""
-        analysis_text = ""
-        
-        for query in queries:
-            if query in results:
-                logger.info(f"Analyzing search results for: {query}")
-                
-                # Log to web interface if model has web server
-                if hasattr(self.model, 'web_server') and self.model.web_server:
-                    self.model.web_server.log_interaction('analyze', f'Analyzing results for: {query}')
-                
-                # Analyze the results
-                analysis = self.model.analyze_search_results(query, results[query])
-                
-                # Add to the full analysis text
-                analysis_text += f"\n\n#### Search Query: {query}\n{analysis}\n"
-        
-        return analysis_text
-    
-    def _extract_connections(self, response):
-        """Extract connections from response."""
-        connection_pattern = r'### CONNECTION\s*\n(.*?)(?=###|$)'
-        matches = re.finditer(connection_pattern, response, re.DOTALL)
-        
-        connections = []
-        for match in matches:
-            connection_text = match.group(1).strip()
-            # Extract title and content
-            parts = connection_text.split('\n', 1)
-            if len(parts) >= 2:
-                title = parts[0].strip()
-                content = parts[1].strip()
-                connections.append({
-                    'title': title,
-                    'content': content
-                })
-            
-        return connections
-    
-    def _record_connection(self, title, content):
-        """Record a connection to the connections log."""
-        try:
-            logger.info(f"Recording connection: {title}")
-            
-            # Create a file for this connection
-            self.model.record_connection(title, content)
-            
-            # Update the connections log
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            new_entry = f"\n### {timestamp} - {title}\n{content}\n"
-            
-            # Read current log
-            with open(self.connections_log, "r") as f:
-                log_content = f.read()
-            
-            # Insert new entry before the last line
-            if "No connections recorded yet." in log_content:
-                # Replace the placeholder
-                log_content = log_content.replace("No connections recorded yet.", new_entry.strip())
-            else:
-                # Append to the list
-                log_content = log_content.rstrip() + new_entry
-            
-            # Write updated log
-            with open(self.connections_log, "w") as f:
-                f.write(log_content)
-                
-            # Log to web interface if model has web server
-            if hasattr(self.model, 'web_server') and self.model.web_server:
-                self.model.web_server.log_interaction('connection', f'Recorded connection: {title}')
-                
-            return True
-        except Exception as e:
-            logger.error(f"Error recording connection: {e}")
-            return False
-    
-    def _extract_findings(self, response):
-        """Extract findings from response."""
-        finding_pattern = r'### FINDING\s*\n(.*?)(?=###|$)'
-        matches = re.finditer(finding_pattern, response, re.DOTALL)
-        
-        findings = []
-        for match in matches:
-            finding_text = match.group(1).strip()
-            # Extract title and content
-            parts = finding_text.split('\n', 1)
-            if len(parts) >= 2:
-                title = parts[0].strip()
-                content = parts[1].strip()
-                findings.append({
-                    'title': title,
-                    'content': content
-                })
-            
-        return findings
-    
-    def _record_finding(self, title, content):
-        """Record a finding to the findings log."""
-        try:
-            logger.info(f"Recording finding: {title}")
-            
-            # Create the findings directory if it doesn't exist
-            findings_dir = os.path.join("data", "findings")
-            os.makedirs(findings_dir, exist_ok=True)
-            
-            # Create a filename based on the title and timestamp
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            title_slug = title.lower().replace(' ', '_')[:30]  # Create a slug from the title
-            filename = f"{timestamp}_{title_slug}.md"
-            filepath = os.path.join(findings_dir, filename)
-            
-            # Format the content
-            formatted_content = f"""# Finding: {title}
-*Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
-
-{content}
-"""
-            
-            # Write finding to file
-            with open(filepath, 'w') as f:
-                f.write(formatted_content)
-            
-            # Update the findings log
-            timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            new_entry = f"\n### {timestamp_str} - {title}\n{content}\n"
-            
-            # Read current log
-            with open(self.findings_log, "r") as f:
-                log_content = f.read()
-            
-            # Insert new entry before the last line
-            if "No findings recorded yet." in log_content:
-                # Replace the placeholder
-                log_content = log_content.replace("No findings recorded yet.", new_entry.strip())
-            else:
-                # Append to the list
-                log_content = log_content.rstrip() + new_entry
-            
-            # Write updated log
-            with open(self.findings_log, "w") as f:
-                f.write(log_content)
-                
-            # Log to web interface if model has web server
-            if hasattr(self.model, 'web_server') and self.model.web_server:
-                self.model.web_server.log_interaction('finding', f'Recorded finding: {title}')
-                
-            return True
-        except Exception as e:
-            logger.error(f"Error recording finding: {e}")
-            return False
-    
-    def _check_for_discovery(self, response):
-        """Check if the response contains a declaration of a new physics law discovery."""
-        # Look for the DISCOVERY_DECLARATION marker in the response
-        if "### DISCOVERY_DECLARATION" in response:
-            # Extract the discovery content
-            discovery_pattern = r'### DISCOVERY_DECLARATION\s*\n([\s\S]*?)(?=###|$)'
-            match = re.search(discovery_pattern, response)
-            
-            if match:
-                discovery_content = match.group(1).strip()
-                # Record the discovery
-                self.record_discovery(discovery_content)
-                logger.info(f"New law of physics discovered and recorded!")
-                
-                # Log to web interface if model has web server
-                if hasattr(self.model, 'web_server') and self.model.web_server:
-                    self.model.web_server.log_interaction('discovery', 'New law of physics discovered and recorded in findings.txt!')
-    
-    def record_discovery(self, discovery_content):
-        """Record a confirmed new law of physics discovery to findings.txt."""
-        try:
-            # Create the findings file
-            findings_file = "data/findings.txt"
-            
-            # Ensure data directory exists
-            os.makedirs(os.path.dirname(findings_file), exist_ok=True)
-            
-            # Create a formatted entry
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            formatted_discovery = f"""
-# New Law of Physics Discovered by {self.name}
-## Date of Discovery: {timestamp}
-
-{discovery_content}
-"""
-            
-            # Write the discovery
-            with open(findings_file, "w") as f:
-                f.write(formatted_discovery)
-                
-            logger.info(f"Discovery recorded to {findings_file}")
-            return True
-        except Exception as e:
-            logger.error(f"Error recording discovery: {e}")
-            return False
-    
-    def _build_focused_action_prompt(self, memory_content):
-        """Build an improved, more focused prompt for the action cycle."""
-        # Extract essential sections from memory
-        identity_section = self._extract_section(memory_content, "Agent Identity and Goal")
-        progress_section = self._extract_section(memory_content, "Progress Summary")
-        next_steps_section = self._extract_section(memory_content, "Next Steps and Planning")
-        recent_actions = self._extract_section(memory_content, "Recent Actions and Outcomes")
-        insights_section = self._extract_section(memory_content, "Insights and Learnings")
-        action_summaries = self._extract_section(memory_content, "Action Summaries")
-        
-        # Check if we have any findings or connections
-        findings_files = []
-        connections_files = []
-        
-        findings_dir = os.path.join("data", "findings")
-        connections_dir = os.path.join("data", "connections")
-        
-        if os.path.exists(findings_dir):
-            findings_files = [f for f in os.listdir(findings_dir) if f.endswith('.md') and not f == "findings_log.md"]
-            findings_files.sort(reverse=True)  # Most recent first
-        
-        if os.path.exists(connections_dir):
-            connections_files = [f for f in os.listdir(connections_dir) if f.endswith('.md') and not f == "connections_log.md"]
-            connections_files.sort(reverse=True)  # Most recent first
-        
-        # Get the most recent findings and connections (up to 3 each)
-        recent_findings_summary = ""
-        if findings_files:
-            recent_findings_summary += "## Recent Findings\n"
-            for i, filename in enumerate(findings_files[:3]):
-                try:
-                    with open(os.path.join(findings_dir, filename), 'r') as f:
-                        content = f.read()
-                        # Extract title and first paragraph
-                        title_match = re.search(r'# Finding: (.*?)\n', content)
-                        if title_match:
-                            title = title_match.group(1)
-                            # Extract first paragraph after timestamp line
-                            timestamp_line_pos = content.find('*Generated on:')
-                            if timestamp_line_pos != -1:
-                                content_after_timestamp = content[content.find('\n', timestamp_line_pos) + 1:]
-                                first_para = content_after_timestamp.split('\n\n')[0].strip()
-                                recent_findings_summary += f"- **{title}**: {first_para}\n\n"
-                except Exception as e:
-                    logger.error(f"Error reading finding file {filename}: {e}")
-        
-        recent_connections_summary = ""
-        if connections_files:
-            recent_connections_summary += "## Recent Connections\n"
-            for i, filename in enumerate(connections_files[:3]):
-                try:
-                    with open(os.path.join(connections_dir, filename), 'r') as f:
-                        content = f.read()
-                        # Extract title and first paragraph
-                        title_match = re.search(r'# Connection: (.*?)\n', content)
-                        if title_match:
-                            title = title_match.group(1)
-                            # Extract first paragraph after timestamp line
-                            timestamp_line_pos = content.find('*Generated on:')
-                            if timestamp_line_pos != -1:
-                                content_after_timestamp = content[content.find('\n', timestamp_line_pos) + 1:]
-                                first_para = content_after_timestamp.split('\n\n')[0].strip()
-                                recent_connections_summary += f"- **{title}**: {first_para}\n\n"
-                except Exception as e:
-                    logger.error(f"Error reading connection file {filename}: {e}")
-        
-        # Create focused prompt with emphasis on making progress toward the goal
-        return f"""# {self.name} - Focused Action Cycle
-
-## Your Goal
-As {self.name}, your goal is to:
-{self.goal}
-
-## Your Current Status
-
-### Identity and Goal
-{identity_section}
-
-### Progress Summary
-{progress_section}
-
-### Recent Actions
-{recent_actions}
-
-## Important Context
-
-### Key Insights Gathered
-{insights_section}
-
-### Recent Findings
-{recent_findings_summary if recent_findings_summary else "No recent findings documented yet."}
-
-### Recent Connections
-{recent_connections_summary if recent_connections_summary else "No recent connections documented yet."}
-
-### Action Summaries
-{action_summaries if action_summaries else "No recent action summaries available yet."}
-
-### Next Steps Planned
-{next_steps_section}
-
-## Current Time
-The current time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-## Your Task
-
-As a scientific agent working on discovering a new law of physics, your priority should be to:
-
-1. MAKE SUBSTANTIVE PROGRESS toward your goal by applying scientific methodology:
-   - Formulate testable hypotheses
-   - Seek evidence and theoretical foundations
-   - Analyze patterns in existing data
-   - Develop mathematical frameworks
-
-2. DOCUMENT YOUR THINKING PROCESS using the sections below, ensuring you capture:
-   - Concrete findings that contribute to scientific knowledge
-   - Connections between different concepts, theories or observations
-   - Critical analyses of existing physical models and their inconsistencies
-   - Novel mathematical or theoretical frameworks
-
-3. AVOID REPETITIVE WEB SEARCHES:
-   - Don't search for the same information repeatedly
-   - Build on previously gathered information
-   - Use search strategically to fill knowledge gaps
-   - Focus on synthesizing information rather than just collecting it
-
-## Response Format
-
-Structure your response with these exact sections to ensure your progress is properly documented:
-
-### Progress Assessment
-Evaluate your current progress toward discovering a new law of physics. Be specific about what you've learned and what remains uncertain.
-
-### Next Action
-Describe ONE specific, concrete action you will take next toward your goal. This should be a substantive step, not just "continue researching." What specific hypothesis, pattern, or theory will you investigate now?
-
-### Execute Action
-Describe how you executed the action, providing substantive scientific reasoning and analysis.
-
-### FINDING
-Record at least one notable scientific finding from this action cycle. Include a clear title and detailed explanation.
-Title of your finding
-Detailed explanation of the finding, including its scientific significance and how it contributes to your goal of discovering a new law of physics.
-
-### CONNECTION
-Record at least one connection between concepts, theories, or observations. Include a clear title and detailed explanation.
-Title of the connection
-Detailed explanation of how these concepts are connected and why this connection is significant for physics.
-
-### Outcome and Learning Report
-Summarize what you learned from this action and how it advances your understanding of physics.
-
-### Learnings
-Extract 3-5 key insights from this action cycle that represent your growing understanding.
-
-### Next Steps
-Outline 2-3 specific next steps based on what you just learned. These should be concrete actions that build on your findings.
-
-### WEB_SEARCH
-If you need new information, include up to 3 specific, targeted search queries on separate lines. Don't repeat previous searches.
-
-## DISCOVERY DECLARATION
-Include this ONLY if you have formulated a truly novel, mathematical law or theory of physics that meets all criteria:
-1. Has precise mathematical formulation
-2. Explains previously unexplained phenomena 
-3. Makes testable predictions
-4. Shows consistency with established laws where they are valid
-5. Identifies where and why existing theories fail
-"""
-    
-    def _extract_section(self, content, section_name):
-        """Extract a specific section from content."""
-        try:
-            # Match section header and content up to the next section header
-            pattern = rf"## {section_name}\n([\s\S]*?)(?:\n## |$)"
-            match = re.search(pattern, content)
-            
-            if match:
-                return match.group(1).strip()
-            return ""
-        except Exception as e:
-            logger.error(f"Error extracting section {section_name}: {e}")
-            return ""
-    
-    def _extract_recent_sections(self, content, num_sections=3):
-        """Extract the most recent custom sections from memory."""
-        try:
-            # Find all sections that start with a timestamp (likely recent activities)
-            pattern = r"## Action Taken at ([0-9\-: ]+)\n([\s\S]*?)(?=\n## Action Taken at|\Z)"
-            matches = list(re.finditer(pattern, content))
-            
-            # Get the most recent ones
-            recent_matches = matches[-num_sections:] if matches else []
-            
-            # Format them
-            result = ""
-            for match in recent_matches:
-                timestamp = match.group(1)
-                section_content = match.group(2).strip()
-                result += f"## Action Taken at {timestamp}\n{section_content}\n\n"
-                
-            return result.strip()
-        except Exception as e:
-            logger.error(f"Error extracting recent sections: {e}")
-            return ""
-    
-    def test_memory_update(self):
-        """Test updating memory with a sample action."""
-        test_response = """
-### Progress Assessment
-Making initial progress on the goal.
-
-### Next Action
-Research quantum gravity theories.
-
-### Execute Action
-Executed research on quantum physics.
-
-### Outcome and Learning Report
-Learned about quantum entanglement.
-
-### Learnings
-The quantum world is strange but fascinating.
-
-### Next Steps
-Explore the implications of quantum entanglement.
-"""
-        
-        # Update memory
-        result = self.memory.update_with_action(test_response)
-        if result:
-            return "Memory updated successfully."
-        else:
-            return "Failed to update memory."
-
-    def _extract_implicit_findings(self, response):
-        """Extract potential findings from response even when not explicitly marked."""
-        findings = []
-        
-        # Look for sections that indicate findings without the specific marker
-        # Patterns that might indicate findings
-        patterns = [
-            r'(?:Observation|Finding|Discovery|Insight):\s*(.*?)(?=$|\n\n)',
-            r'I (?:found|discovered|observed|noticed):\s*(.*?)(?=$|\n\n)',
-            r'(?:Important|Key|Critical) (?:point|result|information):\s*(.*?)(?=$|\n\n)',
-            r'(?:Analysis|Results) show(?:s|ed) that:\s*(.*?)(?=$|\n\n)'
+    def _get_initial_search_topics(self) -> List[str]:
+        """Get initial search topics for physics articles"""
+        return [
+            "latest quantum physics research",
+            "recent physics breakthroughs",
+            "new physics papers in Nature journal",
+            "particle physics research updates",
+            "astrophysics discoveries",
+            "condensed matter physics news",
+            "string theory developments",
+            "theoretical physics advancements",
+            "experimental physics results"
         ]
+    
+    def _format_memory(self) -> str:
+        """Format agent memory for prompt"""
+        memory_text = ""
+        max_tokens = self.config["memory"]["max_tokens"]
         
-        for pattern in patterns:
-            matches = re.finditer(pattern, response, re.MULTILINE | re.IGNORECASE)
-            for match in matches:
-                content_text = match.group(1).strip()
-                if len(content_text) > 20:  # Only consider substantial findings
-                    # Create a title from the first line or first few words
-                    title_text = content_text.split('\n')[0][:50]
-                    if len(title_text) < 10:  # Title too short, use first few words
-                        title_words = content_text.split()[:6]
-                        title_text = ' '.join(title_words)
-                    
-                    findings.append({
-                        'title': title_text,
-                        'content': content_text
-                    })
+        # Add each memory section
+        for section in self.config["memory"]["structure"]:
+            if section in self.memory:
+                content = self.memory[section]
+                if isinstance(content, list):
+                    content = "\n- " + "\n- ".join(content)
+                elif isinstance(content, dict):
+                    content = "\n- " + "\n- ".join([f"{k}: {v}" for k, v in content.items()])
+                
+                memory_text += f"## {section}\n{content}\n\n"
         
-        return findings
-
-    def _extract_implicit_connections(self, response):
-        """Extract potential connections from response even when not explicitly marked."""
-        connections = []
+        # Simple truncation - in practice, you'd want a more sophisticated approach
+        if len(memory_text) > max_tokens:
+            memory_text = memory_text[:max_tokens] + "..."
         
-        # Look for sections that indicate connections without the specific marker
-        # Patterns that might indicate connections
-        patterns = [
-            r'(?:Connection|Relationship|Correlation|Link) (?:between|among):\s*(.*?)(?=$|\n\n)',
-            r'(?:Related|Connected|Associated):\s*(.*?)(?=$|\n\n)',
-            r'(?:This|The above) (?:relates|connects|links) to:\s*(.*?)(?=$|\n\n)',
-            r'I (?:see|found) a (?:connection|relationship|correlation):\s*(.*?)(?=$|\n\n)'
-        ]
+        return memory_text
+    
+    def run_forever(self):
+        """Run the agent continuously"""
+        logger.info(f"Starting {self.name} agent loop")
         
-        for pattern in patterns:
-            matches = re.finditer(pattern, response, re.MULTILINE | re.IGNORECASE)
-            for match in matches:
-                content_text = match.group(1).strip()
-                if len(content_text) > 20:  # Only consider substantial connections
-                    # Create a title from the first line or first few words
-                    title_text = content_text.split('\n')[0][:50]
-                    if len(title_text) < 10:  # Title too short, use first few words
-                        title_words = content_text.split()[:6]
-                        title_text = ' '.join(title_words)
-                    
-                    connections.append({
-                        'title': title_text,
-                        'content': content_text
-                    })
+        while True:
+            try:
+                # Run one cycle of the agent
+                self.run_once()
+                
+                # Update statistics
+                self.db.update_statistics()
+                
+                # Update memory with recent statistics
+                stats = self.db.get_statistics(days=1)
+                if stats:
+                    self.memory["Statistics"] = {
+                        "Articles Found Today": stats[0].get("articles_found", 0),
+                        "Articles Processed Today": stats[0].get("articles_processed", 0),
+                        "Average Score": round(stats[0].get("avg_score", 0), 2),
+                        "Top Keywords": ", ".join(stats[0].get("top_keywords", []))
+                    }
+                
+                # Sleep until next cycle
+                logger.info(f"Sleeping for {self.action_interval} seconds")
+                time.sleep(self.action_interval)
+                
+            except KeyboardInterrupt:
+                logger.info("Agent stopped by user")
+                break
+            except Exception as e:
+                logger.error(f"Error in agent loop: {e}")
+                # Sleep for a while before retrying
+                time.sleep(60)
+    
+    def run_once(self):
+        """Run one cycle of the agent's operations"""
+        logger.info("Starting agent cycle")
         
-        return connections
-
-    def _build_action_prompt(self, memory_content):
-        """Build the prompt for the action cycle."""
-        # Check if memory content is too large, if so, summarize it
-        memory_size = len(memory_content)
-        token_estimate = memory_size / 4  # Rough estimate (4 chars per token average)
+        # Step 1: Find new physics articles
+        articles = self.find_physics_articles()
         
-        # Log memory stats
-        logger.debug(f"Memory size: {memory_size} characters, ~{token_estimate:.0f} tokens")
+        # Step 2: Process and analyze unprocessed articles
+        processed_count = self.process_articles()
         
-        # If memory is getting very large, we need a more efficient approach
-        # For now, we'll implement a simple memory trimming strategy
-        max_memory_chars = 24000  # About 6000 tokens which is reasonable for modern models
+        # Step 3: Reflect and update search topics
+        self.reflect_and_update_topics()
         
-        if memory_size > max_memory_chars:
-            logger.info(f"Memory exceeding size limit ({memory_size} chars), trimming to ~{max_memory_chars} chars")
+        logger.info(f"Completed agent cycle. Found {len(articles)} new articles, processed {processed_count}.")
+    
+    def find_physics_articles(self) -> List[Dict[str, Any]]:
+        """Search for and find new physics articles"""
+        logger.info("Searching for new physics articles")
+        
+        # Use search topics to find articles
+        search_topics = self.memory["Search Topics"]
+        
+        # Randomly select 2-3 topics to search for this cycle
+        topics_to_search = random.sample(search_topics, min(3, len(search_topics)))
+        
+        all_articles = []
+        for topic in topics_to_search:
+            try:
+                articles = self._search_for_articles(topic)
+                all_articles.extend(articles)
+                
+                # Add articles to database
+                for article in articles:
+                    self.db.add_article(article)
+                
+                logger.info(f"Found {len(articles)} articles for topic: {topic}")
+            except Exception as e:
+                logger.error(f"Error searching for topic '{topic}': {e}")
+        
+        # Update memory with most recent articles
+        if all_articles:
+            self.memory["Recent Articles"] = [
+                f"{a['title']} ({a['source']})" for a in all_articles[:5]
+            ]
+        
+        return all_articles
+    
+    def _search_for_articles(self, topic: str) -> List[Dict[str, Any]]:
+        """Search for articles on a specific topic using the OpenAI web search"""
+        logger.info(f"Searching for articles on topic: {topic}")
+        
+        # Construct a search prompt
+        prompt = f"""
+        You're a physics research assistant looking for the latest physics articles and research papers.
+        Search for recent, high-quality physics articles on: {topic}
+        
+        For each article found, extract the following details in a structured format:
+        - Title
+        - URL
+        - Source/Publication
+        - Publication date (if available)
+        - A brief snippet of the content
+        
+        ONLY return articles that are related to physics research or news.
+        Format your findings as a JSON array of objects.
+        """
+        
+        try:
+            # Try new Responses API first
+            if hasattr(self, 'use_responses_api') and self.use_responses_api:
+                try:
+                    response = self.client.responses.create(
+                        model=self.config["model"]["model_id"],
+                        tools=[{"type": "web_search_preview"}],
+                        tool_choice={"type": "web_search_preview"},
+                        input=prompt
+                    )
+                    content = response.output_text
+                    logger.info("Successfully used responses API for search")
+                except Exception as e:
+                    logger.error(f"Error with responses API: {e}")
+                    content = None
+            else:
+                content = None
+                
+            # Fall back to chat completions API if needed
+            if content is None:
+                response = self.client.chat.completions.create(
+                    model=self.config["model"]["model_id"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.5,
+                    max_tokens=self.config["model"]["max_search_tokens"],
+                )
+                content = response.choices[0].message.content
+                logger.info("Used chat completions API for search")
             
-            # Extract essential sections - always keep these
-            identity_section = self._extract_section(memory_content, "Agent Identity and Goal")
-            progress_section = self._extract_section(memory_content, "Progress Summary")
-            next_steps_section = self._extract_section(memory_content, "Next Steps and Planning")
+            # Extract JSON from the response (handling potential text around the JSON)
+            articles = self._extract_json_from_response(content)
             
-            # Only keep the most recent actions and insights
-            recent_actions = self._extract_section(memory_content, "Recent Actions and Outcomes")
-            insights_section = self._extract_section(memory_content, "Insights and Learnings")
-            web_search_topics = self._extract_section(memory_content, "Web Search Topics")
+            # Add discovery date
+            for article in articles:
+                article["discovery_date"] = datetime.now().isoformat()
             
-            # Recent reflections and actions
-            recent_sections = self._extract_recent_sections(memory_content, 3)
+            return articles
             
-            # Construct trimmed memory
-            trimmed_memory = f"""
-# {self.name} - Autonomous Agent Memory
-
-## Agent Identity and Goal
-{identity_section}
-
-## Progress Summary
-{progress_section}
-
-## Recent Actions and Outcomes
-{recent_actions}
-
-## Next Steps and Planning
-{next_steps_section}
-
-## Insights and Learnings
-{insights_section}
-
-## Web Search Topics
-{web_search_topics}
-
-## Recent Activities
-{recent_sections}
-"""
-            
-            # Use trimmed memory instead
-            memory_content = trimmed_memory
-            logger.debug(f"Trimmed memory to {len(memory_content)} chars")
-            
-            # Optionally log to web server
-            if hasattr(self.model, 'web_server') and self.model.web_server:
-                self.model.web_server.log_interaction('info', f"Memory trimmed from {memory_size} to {len(memory_content)} chars")
+        except Exception as e:
+            logger.error(f"Error in web search: {e}")
+            return []
+    
+    def _extract_json_from_response(self, content: str) -> List[Dict[str, Any]]:
+        """Extract JSON array from response text which may have additional text"""
+        try:
+            # Try to parse the entire response as JSON
+            return json.loads(content)
+        except:
+            # If that fails, try to find the JSON array in the text
+            try:
+                # Look for JSON array pattern
+                start_idx = content.find('[')
+                end_idx = content.rfind(']') + 1
+                
+                if start_idx >= 0 and end_idx > start_idx:
+                    json_str = content[start_idx:end_idx]
+                    return json.loads(json_str)
+                else:
+                    logger.warning("Could not find JSON array in response")
+                    return []
+            except Exception as e:
+                logger.error(f"Error extracting JSON from response: {e}")
+                return []
+    
+    def process_articles(self) -> int:
+        """Process unanalyzed articles in the database"""
+        # Get unprocessed articles
+        articles = self.db.get_unprocessed_articles(limit=5)
+        logger.info(f"Processing {len(articles)} unprocessed articles")
         
-        return f"""# {self.name} - Action Cycle
+        processed_count = 0
+        for article in articles:
+            try:
+                # Analyze the article
+                result = self._analyze_article(article)
+                
+                # Update the article in the database
+                self.db.update_article(article["id"], {
+                    "summary": result["summary"],
+                    "keywords": result["keywords"],
+                    "score": result["score"],
+                    "processed": True
+                })
+                
+                processed_count += 1
+                logger.info(f"Processed article: {article['title']}")
+                
+            except Exception as e:
+                logger.error(f"Error processing article {article['id']}: {e}")
+        
+        return processed_count
+    
+    def _analyze_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze a physics article for summary, keywords, and score"""
+        logger.info(f"Analyzing article: {article['title']}")
+        
+        # Construct a prompt for analysis
+        prompt = f"""
+        Below is information about a physics article. Please analyze it and provide:
+        1. A concise summary (3-5 sentences)
+        2. Exactly 3 keywords that best categorize this article
+        3. A significance score from 1.0 to 10.0 where:
+           - 1.0-3.9: Minor update or news with limited importance
+           - 4.0-6.9: Interesting development with moderate significance
+           - 7.0-8.9: Important discovery or advancement
+           - 9.0-10.0: Groundbreaking, field-changing research
+        
+        Article Title: {article.get('title', 'Unknown')}
+        Source: {article.get('source', 'Unknown')}
+        Publication Date: {article.get('publication_date', 'Unknown')}
+        Content Snippet: {article.get('content_snippet', '')}
+        URL: {article.get('url', '')}
+        
+        Return your analysis in JSON format with keys: "summary", "keywords" (as array of exactly 3 strings), and "score" (as a float).
+        """
+        
+        try:
+            # Get content from API
+            content = None
+            if hasattr(self, 'use_responses_api') and self.use_responses_api:
+                # Use responses API
+                try:
+                    response = self.client.responses.create(
+                        model=self.config["model"]["model_id"],
+                        input=prompt
+                    )
+                    content = response.output_text
+                except Exception as api_error:
+                    logger.error(f"Error with responses API: {api_error}")
+                    content = None
+            
+            # Fall back to chat completions if needed
+            if content is None:
+                response = self.client.chat.completions.create(
+                    model=self.config["model"]["model_id"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=self.config["model"]["max_analysis_tokens"],
+                )
+                content = response.choices[0].message.content
+            
+            # Extract JSON from response
+            analysis = self._extract_json_from_response(content)
+            
+            # If we got a list, take the first item
+            if isinstance(analysis, list) and len(analysis) > 0:
+                analysis = analysis[0]
+            
+            # Validate and clean analysis
+            if not isinstance(analysis, dict):
+                analysis = {}
+            
+            # Ensure we have all required fields
+            result = {
+                "summary": analysis.get("summary", "No summary available."),
+                "keywords": analysis.get("keywords", ["physics", "research", "science"])[:3],
+                "score": float(analysis.get("score", 5.0))
+            }
+            
+            # Validate score range
+            result["score"] = max(1.0, min(10.0, result["score"]))
+            
+            # Ensure we have exactly 3 keywords
+            while len(result["keywords"]) < 3:
+                result["keywords"].append(random.choice(["physics", "science", "research"]))
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in article analysis: {e}")
+            # Return default analysis
+            return {
+                "summary": "Failed to generate summary due to technical error.",
+                "keywords": ["physics", "research", "science"],
+                "score": 5.0
+            }
+    
+    def reflect_and_update_topics(self):
+        """Reflect on recent findings and update search topics"""
+        logger.info("Reflecting and updating search topics")
+        
+        # Get recent article data
+        recent_articles = self.db.get_recent_articles(limit=10)
+        article_info = ""
+        
+        for article in recent_articles:
+            article_info += f"Title: {article['title']}\n"
+            article_info += f"Keywords: {', '.join(article['keywords'] if isinstance(article['keywords'], list) else [])}\n"
+            article_info += f"Score: {article['score']}\n\n"
+        
+        # Current topics
+        current_topics = self.memory["Search Topics"]
+        current_topics_text = "\n".join(current_topics)
+        
+        # Construct a prompt for reflection
+        prompt = f"""
+        You are {self.name}, a physics article curator. Based on recent articles collected and your goal, suggest 5-10 search topics for finding more physics articles.
 
-## Your Identity and Goal
-You are {self.name}, an autonomous agent with the following goal:
-{self.goal}
+        Your goal: {self.goal}
+        
+        Recent articles collected:
+        {article_info}
+        
+        Current search topics:
+        {current_topics_text}
+        
+        Generate 5-10 specific search topics that would help find high-quality physics articles. These should be search phrases, not just keywords.
+        Include a mix of:
+        1. General physics news topics
+        2. Specific subfields (quantum physics, astrophysics, etc.)
+        3. Topics related to recent significant articles
+        4. Topics about emerging physics research areas
+        
+        Return only the list of topics, one per line.
+        """
+        
+        try:
+            # Get content from API
+            content = None
+            if hasattr(self, 'use_responses_api') and self.use_responses_api:
+                # Use responses API
+                try:
+                    response = self.client.responses.create(
+                        model=self.config["model"]["model_id"],
+                        input=prompt
+                    )
+                    content = response.output_text
+                except Exception as api_error:
+                    logger.error(f"Error with responses API: {api_error}")
+                    content = None
+            
+            # Fall back to chat completions if needed
+            if content is None:
+                response = self.client.chat.completions.create(
+                    model=self.config["model"]["model_id"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    max_tokens=1000,
+                )
+                content = response.choices[0].message.content
+            
+            # Extract topics (one per line)
+            new_topics = [
+                topic.strip() for topic in content.strip().split("\n")
+                if topic.strip() and not topic.startswith(("#", "-", "*", "1.", "2."))
+            ]
+            
+            # Filter out any non-topic lines
+            new_topics = [
+                topic for topic in new_topics 
+                if len(topic.split()) >= 2 and len(topic) < 100
+            ]
+            
+            # Update search topics if we have enough
+            if len(new_topics) >= 5:
+                self.memory["Search Topics"] = new_topics
+                logger.info(f"Updated search topics: {len(new_topics)} new topics")
+            else:
+                logger.warning(f"Not enough new topics generated ({len(new_topics)}), keeping current topics")
+            
+        except Exception as e:
+            logger.error(f"Error in reflection: {e}")
 
-## Your Memory
-{memory_content}
 
-## Current Time
-The current time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-## Your Capabilities
-You have the ability to:
-1. Search the web for information
-2. Record findings from your research
-3. Make connections between ideas and concepts
-4. Declare a discovery when you have sufficient evidence
-
-## Task
-Based on your memory and goal, please:
-1. Assess your current progress
-2. Decide on the next action to take
-3. Execute that action (which may include web searches)
-4. Report the outcome and what you learned
-5. Record any notable findings or connections
-
-## Response Format
-Please structure your response with the following sections to help me update my memory effectively:
-
-### Progress Assessment
-Provide a concise assessment of your current progress toward your goal. This will update the "Progress Summary" section of your memory.
-
-### Next Action
-Detail the specific actions you will take next. This will update the "Next Steps and Planning" section of your memory.
-
-### Execute Action
-Describe how you executed the action and what happened.
-
-### WEB_SEARCH
-If you need to search the web, list each search query on a new line. For example:
-quantum gravity experimental evidence
-unexplained phenomena in physics
-theoretical inconsistencies in standard model
-
-### Outcome and Learning Report
-Summarize the outcomes of your action and what you learned from it. This will update the "Recent Actions and Outcomes" section of your memory.
-
-### Learnings
-Explain what insights you gained from this action. This will update the "Insights and Learnings" section.
-
-### Next Steps
-Outline your immediate next steps based on what you just learned. This will also contribute to updating the "Next Steps and Planning" section.
-
-### FINDING
-To record a notable finding, include its title on the first line followed by the detailed content on subsequent lines. For example:
-Potential correlation between dark matter distribution and galactic rotation
-I've observed that the distribution of dark matter in galaxy clusters shows a pattern that doesn't align with current models. Specifically...
-
-### CONNECTION
-To record a connection between concepts, include its title on the first line followed by the detailed explanation on subsequent lines. For example:
-Link between quantum entanglement and spacetime curvature
-The mathematical structure of quantum entanglement has interesting parallels with the equations describing spacetime curvature in general relativity...
-
-## IMPORTANT: Declaring a Discovery
-If and ONLY if you have DEFINITIVELY discovered a new law of physics that is:
-1. Novel (not previously known in the field)
-2. Mathematically formulated
-3. Explains previously unexplained phenomena
-4. Has predictive power for new observations
-
-THEN, and only then, include an additional section:
-
-### DISCOVERY_DECLARATION
-[Detailed description of the new law of physics, including:
-- Its formal mathematical statement
-- The phenomena it explains
-- Predictions it makes
-- How it relates to existing theories]
-"""
+if __name__ == "__main__":
+    # This allows for testing the agent directly
+    agent = PhysicsArticleCurator()
+    agent.run_once()

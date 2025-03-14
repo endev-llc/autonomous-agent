@@ -1,133 +1,79 @@
-# Autonomous Agent
+# Physics Article Curator Agent
 
-An autonomous agent that can perform tasks and work toward a goal using a language model.
+An autonomous agent that continuously finds, summarizes, categorizes, and scores the latest physics articles from across the web.
 
 ## Features
 
-- Autonomous action cycles toward a defined goal
-- Web search capability to gather information from the internet
-- Recording of findings, connections, and discoveries
-- Memory system for maintaining context
-- Web dashboard for monitoring the agent's operations
+- **Autonomous Operation**: Runs 24/7 in a Docker container
+- **Web Search**: Finds the latest physics articles from reputable sources
+- **Article Processing**:
+  - Summarizes article content
+  - Categorizes with 3 keywords for easy searching
+  - Scores articles based on significance and reader value
+- **Local Database**: Stores all article data for later retrieval
+- **Web Interface**: Simple UI to browse and search the collected articles
 
-## Setup and Running
+## Setup
 
 ### Prerequisites
 
 - Docker and Docker Compose
 - OpenAI API key
 
-### Setting Up Environment Variables
+### Configuration
 
-1. Copy the example environment file:
-   ```bash
+1. Copy the example environment file and add your API key:
+   ```
    cp .env.example .env
    ```
 
-2. Edit the `.env` file and add your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your-openai-api-key-here
-   ```
+2. Edit the `.env` file to add your OpenAI API key
+   
+3. (Optional) Modify the `config.yaml` file to adjust agent behavior
 
-### Running with Docker
+### Running the Agent
 
-1. Create a `.env` file with your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your-openai-api-key-here
-   ```
+```bash
+# Build and start the container
+docker compose up -d
 
-2. Start the agent using Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
+# View logs
+docker compose logs -f
 
-3. Access the web dashboard at http://localhost:3000
+# Stop the container
+docker compose down
+```
 
-4. View logs:
-   ```bash
-   docker-compose logs -f
-   ```
+## Web Interface
 
-### Running Locally
+Once running, you can access the web interface at:
+```
+http://localhost:5000
+```
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Database
 
-2. Set your OpenAI API key:
-   ```bash
-   export OPENAI_API_KEY=your-openai-api-key-here
-   ```
+Article data is stored in a SQLite database at `./data/articles.db`
 
-3. Run the agent:
-   ```bash
-   python src/main.py
-   ```
+## Customization
 
-4. Access the web dashboard at http://localhost:8080
+You can customize the agent's behavior by editing the `config.yaml` file:
 
-## Web Dashboard
+- `agent.goal`: The primary objective of the agent
+- `agent.action_interval`: How often the agent searches for new articles (hours)
+- `model.provider` and `model.model_id`: Change the AI model being used
+- `model.web_search_enabled`: Toggle web search capability
+- `model.max_search_tokens`: Maximum tokens for search operations
+- `model.max_analysis_tokens`: Maximum tokens for article analysis
+- `memory.max_tokens`: Maximum tokens for agent memory
 
-The web dashboard provides a visual interface to monitor the agent's operations:
+## Architecture
 
-- **Agent Identity**: Basic information about the agent
-- **Current Memory**: The agent's current memory state
-- **Activity Log**: Real-time log of the agent's activities
-- **Latest Interaction**: Details of the most recent prompt and response
-- **Findings**: Notable observations and discoveries made by the agent
-- **Connections**: Links between concepts, theories, and observations
-- **Web Search Results**: Information gathered from the internet
-- **Analyses**: Agent's analysis of search results
+- `src/agent.py`: Core agent logic for finding and processing articles
+- `src/database.py`: Database operations for storing and retrieving articles
+- `src/main.py`: Main application entry point
+- `src/web_server.py`: Web interface for browsing articles
 
-## New Features
+## License
 
-### Web Search
-
-The agent can now search the web to gather information related to its goal. This capability is powered by the OpenAI API's web search functionality, allowing the agent to:
-
-- Proactively search for information on specific topics
-- Analyze search results for relevant insights
-- Save results and analyses for future reference
-- Use gathered information to make connections between concepts
-
-### Findings and Connections
-
-The agent can now record:
-
-- **Findings**: Important observations or discoveries made during its operation
-- **Connections**: Relationships between different concepts, theories, or observations
-
-These records are stored in the `data/findings` and `data/connections` directories and are accessible through the web dashboard.
-
-## Configuration
-
-Edit `config.yaml` to customize the agent:
-
-- `agent.name`: Name of the agent
-- `agent.goal`: The goal the agent will work toward
-- `agent.action_interval`: How often the agent performs actions (in hours)
-- `model.provider`: Language model provider (currently only "openai" is supported)
-- `model.model_id`: The model ID to use (e.g., "gpt-4o-2024-08-06")
-- `model.web_search_enabled`: Enable/disable web search capability
-- `model.max_search_tokens`: Maximum tokens for search results
-- `model.max_analysis_tokens`: Maximum tokens for analysis of search results
-- `memory.max_tokens`: Maximum memory size in tokens
-- `memory.structure`: Structure of the agent's memory
-
-## Project Structure
-
-- `src/`: Source code
-  - `main.py`: Entry point
-  - `agent.py`: Main agent class
-  - `memory.py`: Memory management
-  - `model_interface.py`: Interface to language model
-  - `web_server.py`: Web server for dashboard
-- `web/`: Web dashboard files
-- `data/`: Data storage
-  - `findings/`: Agent's findings
-  - `connections/`: Agent's connections
-  - `search_results/`: Web search results
-  - `analyses/`: Analysis of search results
-- `config.yaml`: Agent configuration
-- `Dockerfile` and `docker-compose.yml`: Docker configuration
+MIT

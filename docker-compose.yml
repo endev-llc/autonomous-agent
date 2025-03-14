@@ -1,15 +1,20 @@
 version: '3'
 
 services:
-  agent:
+  physics-agent:
     build: .
+    container_name: physics-article-curator
     ports:
-      - "3000:8080"  # Map container port 8080 to host port 3000
+      - "5001:5000"
     volumes:
-      - ./data:/app/data  # Mount data directory for persistence
-      - ./web:/app/web  # Mount web directory for dashboard
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./web:/app/web
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}  # Use from .env file
-      # Override default goal
-      - AGENT_GOAL=Discover a new law of physics by exploring theoretical inconsistencies in current models, seeking patterns in existing data, and proposing novel mathematical frameworks that could explain observed phenomena. Develop, test, and refine hypotheses through thought experiments and logical reasoning. Document your process, insights, and ultimately formulate a coherent new physical law or theory.
-    restart: unless-stopped  # Automatically restart if it crashes
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Uncomment to override config values
+      # - AGENT_GOAL=Your custom goal here
+      # - RUN_ONCE=false
+      # - WEB_ONLY=false
+      # - DEBUG=false
+    restart: unless-stopped 

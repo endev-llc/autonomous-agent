@@ -1,0 +1,184 @@
+2025-03-14 19:10:29.035 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:10:29.066 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:10:29.066 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:10:29.067 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:10:29.067 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:10:29.067 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:10:29.067 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: recent physics breakthroughs
+2025-03-14 19:10:29.677 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:10:29.678 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: recent physics breakthroughs
+2025-03-14 19:10:29.678 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: astrophysics discoveries
+2025-03-14 19:10:52.864 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:10:52.869 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: astrophysics discoveries
+2025-03-14 19:10:52.870 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: theoretical physics advancements
+2025-03-14 19:11:34.326 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:11:34.328 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: theoretical physics advancements
+2025-03-14 19:11:34.342 | INFO     | agent:process_articles:284 - Processing 0 unprocessed articles
+2025-03-14 19:11:34.342 | INFO     | agent:reflect_and_update_topics:391 - Reflecting and updating search topics
+2025-03-14 19:11:47.462 | ERROR    | agent:reflect_and_update_topics:460 - Error in reflection: Error code: 400 - {'error': {'message': 'Model incompatible request argument supplied: temperature', 'type': 'invalid_request_error', 'param': None, 'code': None}}
+2025-03-14 19:11:47.464 | INFO     | agent:run_once:177 - Completed agent cycle. Found 0 new articles, processed 0.
+2025-03-14 19:11:47.499 | INFO     | database:update_statistics:318 - Updated statistics for 2025-03-14
+2025-03-14 19:11:47.501 | INFO     | agent:run_forever:153 - Sleeping for 21600 seconds
+2025-03-14 19:12:28.888 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:12:28.916 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:12:28.917 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:12:28.917 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:12:28.917 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:12:28.917 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:12:28.917 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: astrophysics discoveries
+2025-03-14 19:12:29.194 | ERROR    | agent:_search_for_articles:257 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:12:29.194 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: astrophysics discoveries
+2025-03-14 19:12:29.195 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: particle physics research updates
+2025-03-14 19:13:10.431 | ERROR    | agent:_search_for_articles:257 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:13:10.433 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: particle physics research updates
+2025-03-14 19:13:10.433 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: condensed matter physics news
+2025-03-14 19:13:51.877 | ERROR    | agent:_search_for_articles:257 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:13:51.879 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: condensed matter physics news
+2025-03-14 19:13:51.885 | INFO     | agent:process_articles:286 - Processing 0 unprocessed articles
+2025-03-14 19:13:51.886 | INFO     | agent:reflect_and_update_topics:393 - Reflecting and updating search topics
+2025-03-14 19:14:04.726 | ERROR    | agent:reflect_and_update_topics:462 - Error in reflection: Error code: 400 - {'error': {'message': 'Model incompatible request argument supplied: temperature', 'type': 'invalid_request_error', 'param': None, 'code': None}}
+2025-03-14 19:14:04.727 | INFO     | agent:run_once:177 - Completed agent cycle. Found 0 new articles, processed 0.
+2025-03-14 19:14:04.730 | INFO     | database:update_statistics:318 - Updated statistics for 2025-03-14
+2025-03-14 19:14:04.731 | INFO     | agent:run_forever:153 - Sleeping for 21600 seconds
+2025-03-14 19:31:16.674 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:31:16.700 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:31:16.700 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:31:16.700 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:31:16.700 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:31:16.700 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:31:16.700 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: particle physics research updates
+2025-03-14 19:31:17.301 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:31:17.302 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: particle physics research updates
+2025-03-14 19:31:17.302 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: new physics papers in Nature journal
+2025-03-14 19:31:40.475 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:31:40.476 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: new physics papers in Nature journal
+2025-03-14 19:31:40.477 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: theoretical physics advancements
+2025-03-14 19:32:22.024 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:32:22.029 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: theoretical physics advancements
+2025-03-14 19:32:22.040 | INFO     | agent:process_articles:284 - Processing 0 unprocessed articles
+2025-03-14 19:32:22.040 | INFO     | agent:reflect_and_update_topics:391 - Reflecting and updating search topics
+2025-03-14 19:32:37.270 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:32:37.312 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:32:37.312 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:32:37.313 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:32:37.313 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:32:37.313 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:32:37.313 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: astrophysics discoveries
+2025-03-14 19:33:03.446 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:33:03.449 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: astrophysics discoveries
+2025-03-14 19:33:03.450 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: experimental physics results
+2025-03-14 19:33:23.244 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:33:23.278 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:33:23.279 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:33:23.279 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:33:23.279 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:33:23.279 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:33:23.279 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: experimental physics results
+2025-03-14 19:33:44.944 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:33:44.946 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: experimental physics results
+2025-03-14 19:33:44.947 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: recent physics breakthroughs
+2025-03-14 19:34:26.511 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:34:26.514 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: recent physics breakthroughs
+2025-03-14 19:34:26.515 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: condensed matter physics news
+2025-03-14 19:34:48.024 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:34:48.065 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:34:48.065 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:34:48.065 | INFO     | agent:run_forever:132 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:34:48.065 | INFO     | agent:run_once:166 - Starting agent cycle
+2025-03-14 19:34:48.066 | INFO     | agent:find_physics_articles:181 - Searching for new physics articles
+2025-03-14 19:34:48.066 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: recent physics breakthroughs
+2025-03-14 19:35:07.812 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:35:07.814 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: recent physics breakthroughs
+2025-03-14 19:35:07.814 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: string theory developments
+2025-03-14 19:35:49.436 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:35:49.441 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: string theory developments
+2025-03-14 19:35:49.442 | INFO     | agent:_search_for_articles:213 - Searching for articles on topic: particle physics research updates
+2025-03-14 19:36:30.848 | ERROR    | agent:_search_for_articles:255 - Error in web search: Error code: 400 - {'error': {'message': "Missing required parameter: 'tools[0].function'.", 'type': 'invalid_request_error', 'param': 'tools[0].function', 'code': 'missing_required_parameter'}}
+2025-03-14 19:36:30.850 | INFO     | agent:find_physics_articles:199 - Found 0 articles for topic: particle physics research updates
+2025-03-14 19:36:30.860 | INFO     | agent:process_articles:284 - Processing 0 unprocessed articles
+2025-03-14 19:36:30.861 | INFO     | agent:reflect_and_update_topics:391 - Reflecting and updating search topics
+2025-03-14 19:36:43.782 | ERROR    | agent:reflect_and_update_topics:460 - Error in reflection: Error code: 400 - {'error': {'message': 'Model incompatible request argument supplied: temperature', 'type': 'invalid_request_error', 'param': None, 'code': None}}
+2025-03-14 19:36:43.784 | INFO     | agent:run_once:177 - Completed agent cycle. Found 0 new articles, processed 0.
+2025-03-14 19:36:43.787 | INFO     | database:update_statistics:318 - Updated statistics for 2025-03-14
+2025-03-14 19:36:43.788 | INFO     | agent:run_forever:153 - Sleeping for 21600 seconds
+2025-03-14 19:46:10.245 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:46:10.291 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:46:10.291 | ERROR    | agent:_setup_openai:100 - Error testing OpenAI responses API: Responses.create() got an unexpected keyword argument 'max_tokens'
+2025-03-14 19:46:10.291 | WARNING  | agent:_setup_openai:101 - Falling back to chat completions API
+2025-03-14 19:46:10.291 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:46:10.292 | INFO     | agent:run_forever:148 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:46:10.292 | INFO     | agent:run_once:182 - Starting agent cycle
+2025-03-14 19:46:10.292 | INFO     | agent:find_physics_articles:197 - Searching for new physics articles
+2025-03-14 19:46:10.292 | INFO     | agent:_search_for_articles:229 - Searching for articles on topic: condensed matter physics news
+2025-03-14 19:46:10.292 | ERROR    | agent:_search_for_articles:270 - Error in web search: Responses.create() got an unexpected keyword argument 'max_tokens'
+2025-03-14 19:46:10.292 | INFO     | agent:find_physics_articles:215 - Found 0 articles for topic: condensed matter physics news
+2025-03-14 19:46:10.292 | INFO     | agent:_search_for_articles:229 - Searching for articles on topic: string theory developments
+2025-03-14 19:46:10.292 | ERROR    | agent:_search_for_articles:270 - Error in web search: Responses.create() got an unexpected keyword argument 'max_tokens'
+2025-03-14 19:46:10.292 | INFO     | agent:find_physics_articles:215 - Found 0 articles for topic: string theory developments
+2025-03-14 19:46:10.292 | INFO     | agent:_search_for_articles:229 - Searching for articles on topic: latest quantum physics research
+2025-03-14 19:46:10.293 | ERROR    | agent:_search_for_articles:270 - Error in web search: Responses.create() got an unexpected keyword argument 'max_tokens'
+2025-03-14 19:46:10.293 | INFO     | agent:find_physics_articles:215 - Found 0 articles for topic: latest quantum physics research
+2025-03-14 19:46:10.293 | INFO     | agent:process_articles:299 - Processing 0 unprocessed articles
+2025-03-14 19:46:10.293 | INFO     | agent:reflect_and_update_topics:411 - Reflecting and updating search topics
+2025-03-14 19:46:12.833 | INFO     | agent:reflect_and_update_topics:489 - Updated search topics: 10 new topics
+2025-03-14 19:46:12.834 | INFO     | agent:run_once:193 - Completed agent cycle. Found 0 new articles, processed 0.
+2025-03-14 19:46:12.836 | INFO     | database:update_statistics:318 - Updated statistics for 2025-03-14
+2025-03-14 19:46:12.838 | INFO     | agent:run_forever:169 - Sleeping for 3600 seconds
+2025-03-14 19:48:07.906 | INFO     | database:__init__:14 - Database initialized at data/articles.db
+2025-03-14 19:48:07.950 | INFO     | agent:_setup_openai:88 - OpenAI client initialized
+2025-03-14 19:48:09.389 | INFO     | agent:_setup_openai:97 - OpenAI responses API test successful
+2025-03-14 19:48:09.390 | INFO     | agent:__init__:40 - Agent 'PhysicsArticleCurator' initialized with goal: Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news.
+2025-03-14 19:48:09.390 | INFO     | agent:run_forever:146 - Starting PhysicsArticleCurator agent loop
+2025-03-14 19:48:09.390 | INFO     | agent:run_once:180 - Starting agent cycle
+2025-03-14 19:48:09.391 | INFO     | agent:find_physics_articles:195 - Searching for new physics articles
+2025-03-14 19:48:09.391 | INFO     | agent:_search_for_articles:227 - Searching for articles on topic: recent physics breakthroughs
+2025-03-14 19:48:17.376 | INFO     | agent:_search_for_articles:256 - Successfully used responses API for search
+2025-03-14 19:48:17.389 | INFO     | database:add_article:98 - Added new article: A deep-sea neutrino telescope spots the most energetic ghost particle yet
+2025-03-14 19:48:17.393 | INFO     | database:add_article:98 - Added new article: Microsoft claims quantum breakthrough after 20-year pursuit of elusive particle
+2025-03-14 19:48:17.395 | INFO     | database:add_article:98 - Added new article: New magnetic flow has potential to revolutionise electronic devices
+2025-03-14 19:48:17.398 | INFO     | database:add_article:98 - Added new article: Top 10 Breakthroughs of the Year in physics for 2024 revealed – Physics World
+2025-03-14 19:48:17.401 | INFO     | database:add_article:98 - Added new article: Anima Anandkumar is Accelerating Scientific Discovery with AI
+2025-03-14 19:48:17.403 | INFO     | database:add_article:98 - Added new article: Physics World reveals its top 10 Breakthroughs of the Year for 2023 – Physics World
+2025-03-14 19:48:17.405 | INFO     | database:add_article:98 - Added new article: Physics breakthrough of 2024 awarded to quantum computing innovators | Institute of Physics
+2025-03-14 19:48:17.407 | INFO     | database:add_article:98 - Added new article: Tiny Device Promises Major Physics Breakthroughs, Improved Lasers | Mirage News
+2025-03-14 19:48:17.409 | INFO     | database:add_article:98 - Added new article: Nobel Prize in physics awarded to two scientists for work on machine learning
+2025-03-14 19:48:17.409 | INFO     | agent:find_physics_articles:213 - Found 9 articles for topic: recent physics breakthroughs
+2025-03-14 19:48:17.410 | INFO     | agent:_search_for_articles:227 - Searching for articles on topic: condensed matter physics news
+2025-03-14 19:48:23.399 | INFO     | agent:_search_for_articles:256 - Successfully used responses API for search
+2025-03-14 19:48:23.400 | INFO     | database:add_article:67 - Article already exists in database: Microsoft claims quantum breakthrough after 20-year pursuit of elusive particle
+2025-03-14 19:48:23.404 | INFO     | database:add_article:98 - Added new article: Condensed matter physics: Novel one-dimensional superconductor
+2025-03-14 19:48:23.407 | INFO     | database:add_article:98 - Added new article: German Scientists Have Solved a Long-Standing Problem of Condensed Matter Physics
+2025-03-14 19:48:23.413 | INFO     | database:add_article:98 - Added new article: Researchers uncover link between quantum information theory and particle and condensed matter physics
+2025-03-14 19:48:23.414 | INFO     | agent:find_physics_articles:213 - Found 4 articles for topic: condensed matter physics news
+2025-03-14 19:48:23.414 | INFO     | agent:_search_for_articles:227 - Searching for articles on topic: new physics papers in Nature journal
+2025-03-14 19:48:30.139 | INFO     | agent:_search_for_articles:256 - Successfully used responses API for search
+2025-03-14 19:48:30.141 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.142 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.142 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.143 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.143 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.144 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.144 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.144 | ERROR    | database:add_article:102 - Error adding article: 'url'
+2025-03-14 19:48:30.145 | INFO     | agent:find_physics_articles:213 - Found 8 articles for topic: new physics papers in Nature journal
+2025-03-14 19:48:30.146 | INFO     | agent:process_articles:313 - Processing 5 unprocessed articles
+2025-03-14 19:48:30.146 | INFO     | agent:_analyze_article:339 - Analyzing article: Researchers uncover link between quantum information theory and particle and condensed matter physics
+2025-03-14 19:48:32.431 | INFO     | database:update_article:132 - Updated article ID 12
+2025-03-14 19:48:32.432 | INFO     | agent:process_articles:330 - Processed article: Researchers uncover link between quantum information theory and particle and condensed matter physics
+2025-03-14 19:48:32.432 | INFO     | agent:_analyze_article:339 - Analyzing article: German Scientists Have Solved a Long-Standing Problem of Condensed Matter Physics
+2025-03-14 19:48:34.601 | INFO     | database:update_article:132 - Updated article ID 11
+2025-03-14 19:48:34.602 | INFO     | agent:process_articles:330 - Processed article: German Scientists Have Solved a Long-Standing Problem of Condensed Matter Physics
+2025-03-14 19:48:34.602 | INFO     | agent:_analyze_article:339 - Analyzing article: Condensed matter physics: Novel one-dimensional superconductor
+2025-03-14 19:48:36.970 | INFO     | database:update_article:132 - Updated article ID 10
+2025-03-14 19:48:36.971 | INFO     | agent:process_articles:330 - Processed article: Condensed matter physics: Novel one-dimensional superconductor
+2025-03-14 19:48:36.971 | INFO     | agent:_analyze_article:339 - Analyzing article: Nobel Prize in physics awarded to two scientists for work on machine learning
+2025-03-14 19:48:38.850 | INFO     | database:update_article:132 - Updated article ID 9
+2025-03-14 19:48:38.851 | INFO     | agent:process_articles:330 - Processed article: Nobel Prize in physics awarded to two scientists for work on machine learning
+2025-03-14 19:48:38.851 | INFO     | agent:_analyze_article:339 - Analyzing article: Tiny Device Promises Major Physics Breakthroughs, Improved Lasers | Mirage News
+2025-03-14 19:48:40.838 | INFO     | database:update_article:132 - Updated article ID 8
+2025-03-14 19:48:40.838 | INFO     | agent:process_articles:330 - Processed article: Tiny Device Promises Major Physics Breakthroughs, Improved Lasers | Mirage News
+2025-03-14 19:48:40.838 | INFO     | agent:reflect_and_update_topics:424 - Reflecting and updating search topics
+2025-03-14 19:48:42.662 | WARNING  | agent:reflect_and_update_topics:503 - Not enough new topics generated (0), keeping current topics
+2025-03-14 19:48:42.664 | INFO     | agent:run_once:191 - Completed agent cycle. Found 21 new articles, processed 5.
+2025-03-14 19:48:42.673 | INFO     | database:update_statistics:318 - Updated statistics for 2025-03-14
+2025-03-14 19:48:42.675 | INFO     | agent:run_forever:167 - Sleeping for 3600 seconds

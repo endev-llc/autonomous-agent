@@ -1,21 +1,19 @@
 agent:
-  name: "AutonomousAgent"
-  goal: "Discover a new law of physics by exploring theoretical inconsistencies in current models, seeking patterns in existing data, and proposing novel mathematical frameworks that could explain observed phenomena. Develop, test, and refine hypotheses through thought experiments and logical reasoning. Document your process, insights, and ultimately formulate a coherent new physical law or theory."
-  action_interval: 0.008  # (in hours)
+  name: "PhysicsArticleCurator"
+  goal: "Find, summarize, categorize, and score the latest physics articles from reputable sources, creating a searchable database of physics research and news."
+  action_interval: 1  # (in hours)
 
 model:
   provider: "openai"
-  model_id: "gpt-4o-search-preview"
+  model_id: "gpt-4o"
   web_search_enabled: true
   max_search_tokens: 4000
   max_analysis_tokens: 2000
 
 memory:
-  max_tokens: 16000
+  max_tokens: 4000
   structure:
     - "Agent Identity and Goal"
-    - "Progress Summary"
-    - "Recent Actions and Outcomes"
-    - "Next Steps and Planning"
-    - "Insights and Learnings"
-    - "Web Search Topics"
+    - "Recent Articles"
+    - "Search Topics"
+    - "Statistics"

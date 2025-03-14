@@ -3,226 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Agent Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Physics Article Curator</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Add Open Sans font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-primary">
+    <header>
         <div class="container">
-            <a class="navbar-brand" href="#"><i class="fas fa-robot me-2"></i>Autonomous Agent</a>
-            <div class="navbar-text">
-                <span class="status-badge">
-                    Status: <span id="agent-status" class="badge bg-warning">Checking...</span>
-                </span>
+            <h1>Physics Article Curator</h1>
+            <p class="subtitle">Automatically finding, summarizing, and categorizing the latest physics research</p>
+            
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search articles by keyword, title, or content...">
+                <button id="search-button">Search</button>
+            </div>
+            
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="keyword-filter">Filter by keyword:</label>
+                    <select id="keyword-filter">
+                        <option value="">All keywords</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="score-filter">Minimum score:</label>
+                    <select id="score-filter">
+                        <option value="0">Any score</option>
+                        <option value="5">5+ (Interesting)</option>
+                        <option value="7">7+ (Important)</option>
+                        <option value="9">9+ (Groundbreaking)</option>
+                    </select>
+                </div>
             </div>
         </div>
-    </nav>
-
-    <div class="container mt-4">
-        <!-- Discovery Banner - Only shown when something is discovered -->
-        <div id="discovery-banner" class="alert alert-success mb-4" style="display: none;">
-            <h4 class="alert-heading"><i class="fas fa-star me-2"></i>New Law of Physics Discovered!</h4>
-            <p>The agent has discovered a new law of physics. View the details below.</p>
-            <hr>
-            <div id="discovery-content"></div>
-            <button class="btn btn-success mt-2" onclick="showDiscoveryModal()">View Full Details</button>
+    </header>
+    
+    <main class="container">
+        <div class="stats-panel">
+            <h2>Latest Statistics</h2>
+            <div id="stats-content" class="stats-content">
+                <p>Loading statistics...</p>
+            </div>
         </div>
         
-        <!-- Agent Info Panel -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-info-circle me-2"></i>Agent Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Name:</strong> <span id="agent-name">Loading...</span></p>
-                        <p><strong>Model:</strong> <span id="agent-model">Loading...</span></p>
-                        <p><strong>Running since:</strong> <span id="agent-uptime">Loading...</span></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-tasks me-2"></i>Goal</h5>
-                    </div>
-                    <div class="card-body">
-                        <p id="agent-goal">Loading...</p>
-                    </div>
-                </div>
+        <div class="articles-container">
+            <h2 id="results-heading">Recent Articles</h2>
+            <div id="articles-list" class="articles-list">
+                <p>Loading articles...</p>
             </div>
         </div>
-
-        <!-- Current Activity Panel -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-sync me-2"></i>Current Activity</h5>
-            </div>
-            <div class="card-body">
-                <p id="current-activity">Initializing...</p>
-            </div>
-        </div>
-
-        <!-- Tabs Navigation -->
-        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="memory-tab" data-bs-toggle="tab" data-bs-target="#memory" type="button" role="tab">
-                    <i class="fas fa-brain me-2"></i>Memory
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
-                    <i class="fas fa-list me-2"></i>Logs
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="interactions-tab" data-bs-toggle="tab" data-bs-target="#interactions" type="button" role="tab">
-                    <i class="fas fa-exchange-alt me-2"></i>Interactions
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content mt-3">
-            <!-- Memory Tab -->
-            <div class="tab-pane fade show active" id="memory" role="tabpanel">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between">
-                        <h5><i class="fas fa-brain me-2"></i>Agent Memory</h5>
-                        <button id="refresh-memory" class="btn btn-sm btn-primary">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="memory-content" class="memory-content">
-                            Loading memory...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Logs Tab -->
-            <div class="tab-pane fade" id="logs" role="tabpanel">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between">
-                        <h5><i class="fas fa-list me-2"></i>Activity Logs</h5>
-                        <button id="refresh-logs" class="btn btn-sm btn-primary">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-striped mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Type</th>
-                                        <th>Message</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="logs-container">
-                                    <tr>
-                                        <td colspan="3" class="text-center">Loading logs...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Interactions Tab -->
-            <div class="tab-pane fade" id="interactions" role="tabpanel">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between">
-                        <h5><i class="fas fa-exchange-alt me-2"></i>Agent Interactions</h5>
-                        <button id="refresh-interactions" class="btn btn-sm btn-primary">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="interactions-container" class="interactions-list">
-                            <div class="text-center py-3">Loading interactions...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Fullscreen Interaction Modal -->
-    <div class="modal fade" id="interaction-modal" tabindex="-1" aria-labelledby="interaction-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="interaction-modal-label">Interaction Details</h5>
-                    <div class="ms-auto">
-                        <span class="badge bg-secondary me-2" id="modal-interaction-time"></span>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                </div>
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h5><i class="fas fa-paper-plane me-2"></i>Prompt</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <pre id="modal-prompt" class="modal-content-block"></pre>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h5><i class="fas fa-reply me-2"></i>Response</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="modal-response" class="modal-content-block"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Common Modal -->
-    <div class="modal fade" id="common-modal" tabindex="-1" aria-labelledby="common-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="common-modal-title">Modal Title</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="common-modal-body">
-                    Content will be loaded here
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer mt-4 py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">Last updated: <span id="last-updated">-</span></span>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>Physics Article Curator &copy; 2023 - Autonomous Agent</p>
         </div>
     </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    
+    <!-- Article template (hidden) -->
+    <template id="article-template">
+        <article class="article-card">
+            <div class="score-badge"></div>
+            <h3 class="article-title"></h3>
+            <div class="article-meta">
+                <span class="article-source"></span>
+                <span class="article-date"></span>
+            </div>
+            <div class="article-summary"></div>
+            <div class="article-keywords"></div>
+            <div class="article-link">
+                <a href="#" target="_blank">Read the original article</a>
+            </div>
+        </article>
+    </template>
+    
     <script src="script.js"></script>
 </body>
 </html>

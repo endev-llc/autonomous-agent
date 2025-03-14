@@ -1,598 +1,252 @@
-// Configuration
-const CONFIG = {
-    apiBaseUrl: '/api',
-    pollInterval: 5000,  // Poll for updates every 5 seconds
-    maxInteractions: 20  // Maximum number of interactions to show
-};
-
-// Application State
-const state = {
-    agentInfo: null,
-    memory: null,
-    logs: [],
-    interactions: [],
-    lastUpdated: null,
-    currentActivity: "Initializing...",
-    hasDiscovery: false
-};
-
 // DOM Elements
-const elements = {
-    // Agent Info
-    agentStatus: document.getElementById('agent-status'),
-    agentName: document.getElementById('agent-name'),
-    agentGoal: document.getElementById('agent-goal'),
-    agentModel: document.getElementById('agent-model'),
-    agentUptime: document.getElementById('agent-uptime'),
-    
-    // Current Status
-    currentActivity: document.getElementById('current-activity'),
-    
-    // Memory Tab
-    memoryContent: document.getElementById('memory-content'),
-    refreshMemory: document.getElementById('refresh-memory'),
-    
-    // Logs Tab
-    logsContainer: document.getElementById('logs-container'),
-    refreshLogs: document.getElementById('refresh-logs'),
-    
-    // Interactions Tab
-    interactionsContainer: document.getElementById('interactions-container'),
-    refreshInteractions: document.getElementById('refresh-interactions'),
-    
-    // Modal
-    interactionModal: new bootstrap.Modal(document.getElementById('interaction-modal')),
-    modalPrompt: document.getElementById('modal-prompt'),
-    modalResponse: document.getElementById('modal-response'),
-    modalInteractionTime: document.getElementById('modal-interaction-time'),
-    
-    // Footer
-    lastUpdated: document.getElementById('last-updated')
-};
+const articlesListElement = document.getElementById('articles-list');
+const resultsHeadingElement = document.getElementById('results-heading');
+const searchInputElement = document.getElementById('search-input');
+const searchButtonElement = document.getElementById('search-button');
+const keywordFilterElement = document.getElementById('keyword-filter');
+const scoreFilterElement = document.getElementById('score-filter');
+const statsContentElement = document.getElementById('stats-content');
+const articleTemplate = document.getElementById('article-template');
+
+// State
+let currentArticles = [];
+let allKeywords = [];
+let isSearchMode = false;
 
 // Initialize the application
-async function init() {
-    try {
-        // Set up event listeners
-        setupEventListeners();
-        
-        // Set up polling intervals
-        setPollingIntervals();
-        
-        // Initial data fetch
-        await Promise.all([
-            fetchAgentInfo(),
-            fetchMemory(),
-            fetchLogs(),
-            fetchInteractions()
-        ]);
-        
-        // Check for discoveries
-        if (state.agentInfo && state.agentInfo.has_discovery) {
-            state.hasDiscovery = true;
-            await fetchDiscovery();
-        }
-        
-        // Update the UI
-        updateAllUI();
-        
-        // Update agent status to online
-        updateAgentStatus('online');
-        
-        // Log that we're initialized
-        console.log('Dashboard initialized successfully');
-        
-        // Hide loading indicator if we have one
-        const loadingIndicator = document.getElementById('loading-indicator');
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
-        
-    } catch (error) {
-        console.error('Error initializing dashboard:', error);
-    }
-}
+document.addEventListener('DOMContentLoaded', () => {
+    loadRecentArticles();
+    loadKeywords();
+    loadStatistics();
+    setupEventListeners();
+});
 
-// Set up event listeners
+// Setup event listeners
 function setupEventListeners() {
-    // Refresh buttons
-    elements.refreshMemory.addEventListener('click', fetchMemory);
-    elements.refreshLogs.addEventListener('click', fetchLogs);
-    elements.refreshInteractions.addEventListener('click', fetchInteractions);
-}
-
-// Fetch agent information
-async function fetchAgentInfo() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/agent`);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const data = await response.json();
-        state.agentInfo = data;
-        updateAgentInfo();
-        
-        // Check if there's a discovery
-        if (data.has_discovery && !state.hasDiscovery) {
-            state.hasDiscovery = true;
-            await fetchDiscovery();
-        }
-        return data;
-    } catch (error) {
-        console.error('Error fetching agent info:', error);
-        throw error;
-    }
-}
-
-// Fetch discovery
-async function fetchDiscovery() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/findings`);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.exists) {
-            document.getElementById('discovery-banner').style.display = 'block';
-            document.getElementById('discovery-content').innerHTML = data.html;
-        }
-        return data;
-    } catch (error) {
-        console.error('Error fetching discovery:', error);
-        throw error;
-    }
-}
-
-// Fetch memory
-async function fetchMemory() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/memory`);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const data = await response.json();
-        state.memory = data.content;
-        updateMemoryDisplay();
-        return data;
-    } catch (error) {
-        console.error('Error fetching memory:', error);
-        throw error;
-    }
-}
-
-// Fetch logs
-async function fetchLogs() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/logs`);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const data = await response.json();
-        state.logs = data;
-        updateLogsDisplay();
-        updateCurrentActivity();
-        updateLastUpdated();
-        return data;
-    } catch (error) {
-        console.error('Error fetching logs:', error);
-        throw error;
-    }
-}
-
-// Fetch all interactions history
-async function fetchInteractions() {
-    try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/interactions?limit=${CONFIG.maxInteractions}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const data = await response.json();
-        
-        // Check if interactions data has changed before updating display
-        if (hasInteractionsChanged(data)) {
-            state.interactions = data;
-            updateInteractionsDisplay();
-        }
-        updateLastUpdated();
-        return data;
-    } catch (error) {
-        console.error('Error fetching interactions:', error);
-        throw error;
-    }
-}
-
-// Check if interactions data has changed
-function hasInteractionsChanged(newInteractions) {
-    if (state.interactions.length !== newInteractions.length) {
-        return true;
-    }
-    
-    // Check if the latest interaction has changed
-    if (newInteractions.length > 0 && state.interactions.length > 0) {
-        const latest = newInteractions[newInteractions.length - 1];
-        const current = state.interactions[state.interactions.length - 1];
-        
-        if (!latest.prompt || !current.prompt) return true;
-        
-        // Compare timestamps
-        return latest.timestamp !== current.timestamp;
-    }
-    
-    return false;
-}
-
-// Update agent info display
-function updateAgentInfo() {
-    if (state.agentInfo) {
-        elements.agentName.textContent = state.agentInfo.name || 'Unknown';
-        elements.agentGoal.textContent = state.agentInfo.goal || 'No goal specified';
-        elements.agentModel.textContent = state.agentInfo.model || 'Unknown';
-        
-        // Update uptime if start time is available
-        if (state.agentInfo.startTime) {
-            updateUptime(state.agentInfo.startTime);
-        }
-    }
-}
-
-// Update memory display
-function updateMemoryDisplay() {
-    if (state.memory) {
-        elements.memoryContent.textContent = state.memory;
-    } else {
-        elements.memoryContent.textContent = 'No memory data available';
-    }
-}
-
-// Update logs display
-function updateLogsDisplay() {
-    if (!state.logs || state.logs.length === 0) {
-        elements.logsContainer.innerHTML = '<tr><td colspan="3" class="text-center">No logs available</td></tr>';
-        return;
-    }
-    
-    // Clear current logs
-    elements.logsContainer.innerHTML = '';
-    
-    // Add logs (most recent first)
-    const recentLogs = state.logs.slice(-50).reverse();
-    recentLogs.forEach(log => {
-        const row = document.createElement('tr');
-        
-        // Time cell
-        const timeCell = document.createElement('td');
-        timeCell.textContent = formatTime(log.timestamp);
-        row.appendChild(timeCell);
-        
-        // Type cell
-        const typeCell = document.createElement('td');
-        const typeSpan = document.createElement('span');
-        typeSpan.className = `log-type ${log.type}`;
-        typeSpan.textContent = log.type.charAt(0).toUpperCase() + log.type.slice(1);
-        typeCell.appendChild(typeSpan);
-        row.appendChild(typeCell);
-        
-        // Message cell
-        const messageCell = document.createElement('td');
-        messageCell.textContent = log.message;
-        row.appendChild(messageCell);
-        
-        elements.logsContainer.appendChild(row);
+    // Search button click
+    searchButtonElement.addEventListener('click', () => {
+        performSearch();
     });
-}
-
-// Update interactions display
-function updateInteractionsDisplay() {
-    if (!state.interactions || state.interactions.length === 0) {
-        elements.interactionsContainer.innerHTML = '<div class="text-center py-3">No interactions available</div>';
-        return;
-    }
     
-    // Clear current interactions
-    elements.interactionsContainer.innerHTML = '';
-    
-    // Add interactions (most recent first)
-    const sortedInteractions = [...state.interactions].reverse();
-    sortedInteractions.forEach((interaction, index) => {
-        const interactionElem = createInteractionElement(interaction, index);
-        elements.interactionsContainer.appendChild(interactionElem);
-    });
-}
-
-// Create an interaction element
-function createInteractionElement(interaction, index) {
-    const container = document.createElement('div');
-    container.className = 'interaction-container';
-    container.dataset.index = index;
-    
-    // Interaction header
-    const header = document.createElement('div');
-    header.className = 'interaction-header';
-    
-    const interactionNumber = document.createElement('div');
-    interactionNumber.textContent = `Interaction #${state.interactions.length - index}`;
-    
-    const interactionTime = document.createElement('div');
-    interactionTime.className = 'interaction-time';
-    interactionTime.textContent = formatDateTime(interaction.timestamp || interaction.prompt?.timestamp || '');
-    
-    header.appendChild(interactionNumber);
-    header.appendChild(interactionTime);
-    
-    // Interaction body
-    const body = document.createElement('div');
-    body.className = 'interaction-body';
-    
-    // Prompt section
-    const promptSection = document.createElement('div');
-    promptSection.className = 'interaction-prompt';
-    
-    const promptLabel = document.createElement('div');
-    promptLabel.className = 'interaction-label';
-    promptLabel.innerHTML = '<i class="fas fa-paper-plane"></i> Prompt';
-    
-    const promptContent = document.createElement('div');
-    promptContent.className = 'interaction-content';
-    promptContent.textContent = interaction.prompt?.content || 'No prompt available';
-    
-    promptSection.appendChild(promptLabel);
-    promptSection.appendChild(promptContent);
-    
-    // Response section
-    const responseSection = document.createElement('div');
-    responseSection.className = 'interaction-response';
-    
-    const responseLabel = document.createElement('div');
-    responseLabel.className = 'interaction-label';
-    responseLabel.innerHTML = '<i class="fas fa-reply"></i> Response';
-    
-    const responseContent = document.createElement('div');
-    responseContent.className = 'interaction-content';
-    responseContent.textContent = extractTextContent(interaction.response?.content || 'No response available');
-    
-    responseSection.appendChild(responseLabel);
-    responseSection.appendChild(responseContent);
-    
-    // Add sections to body
-    body.appendChild(promptSection);
-    body.appendChild(responseSection);
-    
-    // Add header and body to container
-    container.appendChild(header);
-    container.appendChild(body);
-    
-    // Add click event to show full interaction
-    container.addEventListener('click', () => showInteractionModal(interaction));
-    
-    return container;
-}
-
-// Show interaction modal with full content
-function showInteractionModal(interaction) {
-    // Set prompt content
-    elements.modalPrompt.textContent = interaction.prompt?.content || 'No prompt available';
-    
-    // Set response content
-    if (interaction.response?.content) {
-        try {
-            elements.modalResponse.innerHTML = marked.parse(interaction.response.content);
-        } catch (e) {
-            elements.modalResponse.textContent = interaction.response.content;
+    // Enter key in search input
+    searchInputElement.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            performSearch();
         }
-    } else {
-        elements.modalResponse.textContent = 'No response available';
-    }
+    });
     
-    // Set timestamp
-    elements.modalInteractionTime.textContent = formatDateTime(interaction.timestamp || interaction.prompt?.timestamp || '');
-    
-    // Show the modal
-    elements.interactionModal.show();
+    // Filters change
+    keywordFilterElement.addEventListener('change', filterArticles);
+    scoreFilterElement.addEventListener('change', filterArticles);
 }
 
-// Extract plain text from potentially HTML content
-function extractTextContent(html) {
-    if (!html) return '';
-    
-    // Create a temporary element
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    
-    // Return text content
-    return temp.textContent || temp.innerText || html;
-}
-
-// Update current activity based on recent logs
-function updateCurrentActivity() {
-    if (state.logs && state.logs.length > 0) {
-        // Get the most recent logs (last 5)
-        const recentLogs = state.logs.slice(-5);
+// Load recent articles
+async function loadRecentArticles() {
+    try {
+        const response = await fetch('/api/articles/recent');
+        const articles = await response.json();
         
-        // Look for action logs first
-        const actionLog = recentLogs.find(log => log.type === 'action');
-        if (actionLog) {
-            state.currentActivity = actionLog.message;
-            elements.currentActivity.textContent = actionLog.message;
+        currentArticles = articles;
+        isSearchMode = false;
+        resultsHeadingElement.textContent = 'Recent Articles';
+        
+        renderArticles(articles);
+    } catch (error) {
+        console.error('Error loading recent articles:', error);
+        articlesListElement.innerHTML = '<p>Error loading articles. Please try again later.</p>';
+    }
+}
+
+// Load all available keywords for filtering
+async function loadKeywords() {
+    try {
+        const response = await fetch('/api/keywords');
+        const keywords = await response.json();
+        
+        allKeywords = keywords;
+        
+        // Populate keyword filter dropdown
+        keywordFilterElement.innerHTML = '<option value="">All keywords</option>';
+        keywords.forEach(keyword => {
+            const option = document.createElement('option');
+            option.value = keyword;
+            option.textContent = keyword;
+            keywordFilterElement.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading keywords:', error);
+    }
+}
+
+// Load statistics
+async function loadStatistics() {
+    try {
+        const response = await fetch('/api/stats');
+        const stats = await response.json();
+        
+        if (stats.length === 0) {
+            statsContentElement.innerHTML = '<p>No statistics available yet.</p>';
             return;
         }
         
-        // Otherwise use the most recent log
-        const latestLog = recentLogs[recentLogs.length - 1];
-        state.currentActivity = `${latestLog.type}: ${latestLog.message}`;
-        elements.currentActivity.textContent = state.currentActivity;
+        // Get most recent stats
+        const latestStats = stats[0];
+        
+        // Create stats cards
+        statsContentElement.innerHTML = `
+            <div class="stat-card">
+                <h3>Articles Today</h3>
+                <div class="value">${latestStats.articles_found || 0}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Processed Today</h3>
+                <div class="value">${latestStats.articles_processed || 0}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average Score</h3>
+                <div class="value">${(latestStats.avg_score || 0).toFixed(1)}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Top Keywords</h3>
+                <div class="keyword-list">
+                    ${renderTopKeywords(latestStats.top_keywords || [])}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        statsContentElement.innerHTML = '<p>Error loading statistics. Please try again later.</p>';
     }
 }
 
-// Update agent status indicator
-function updateAgentStatus(status) {
-    elements.agentStatus.className = status === 'online' 
-        ? 'badge bg-success' 
-        : 'badge bg-danger';
+// Render top keywords
+function renderTopKeywords(keywords) {
+    if (!keywords || keywords.length === 0) {
+        return '<p>No keywords yet</p>';
+    }
     
-    elements.agentStatus.textContent = status === 'online' 
-        ? 'Online' 
-        : 'Offline';
+    return keywords.map(keyword => 
+        `<span class="keyword-tag">${keyword}</span>`
+    ).join('');
 }
 
-// Update uptime display
-function updateUptime(startTime) {
+// Perform search
+async function performSearch() {
+    const query = searchInputElement.value.trim();
+    
+    if (!query) {
+        loadRecentArticles();
+        return;
+    }
+    
     try {
-        const startDate = new Date(startTime);
-        const now = new Date();
-        const uptime = now - startDate;
+        articlesListElement.innerHTML = '<p>Searching...</p>';
         
-        // Calculate uptime in a human-readable format
-        const minutes = Math.floor(uptime / (1000 * 60));
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+        const response = await fetch(`/api/articles/search?q=${encodeURIComponent(query)}`);
+        const articles = await response.json();
         
-        let uptimeText = '';
-        if (days > 0) {
-            uptimeText = `${days}d ${hours % 24}h ${minutes % 60}m`;
-        } else if (hours > 0) {
-            uptimeText = `${hours}h ${minutes % 60}m`;
+        currentArticles = articles;
+        isSearchMode = true;
+        
+        if (articles.length === 0) {
+            resultsHeadingElement.textContent = `No Results for "${query}"`;
+            articlesListElement.innerHTML = '<p>No articles found matching your search.</p>';
         } else {
-            uptimeText = `${minutes}m`;
+            resultsHeadingElement.textContent = `Search Results for "${query}"`;
+            renderArticles(articles);
+        }
+    } catch (error) {
+        console.error('Error searching articles:', error);
+        articlesListElement.innerHTML = '<p>Error performing search. Please try again later.</p>';
+    }
+}
+
+// Filter displayed articles
+function filterArticles() {
+    const keywordFilter = keywordFilterElement.value;
+    const scoreFilter = parseFloat(scoreFilterElement.value);
+    
+    // Apply filters to current articles
+    const filteredArticles = currentArticles.filter(article => {
+        // Score filter
+        if (article.score < scoreFilter) {
+            return false;
         }
         
-        elements.agentUptime.textContent = uptimeText;
-    } catch (error) {
-        console.error('Error calculating uptime:', error);
-        elements.agentUptime.textContent = 'Unknown';
-    }
-}
-
-// Update last updated time
-function updateLastUpdated() {
-    const now = new Date();
-    state.lastUpdated = now;
-    elements.lastUpdated.textContent = now.toLocaleTimeString();
-}
-
-// Show error message
-function showError(message) {
-    console.error(message);
-    alert(message);
-}
-
-// Format time for display
-function formatTime(timestamp) {
-    try {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString();
-    } catch (error) {
-        return 'Invalid time';
-    }
-}
-
-// Format date and time for display
-function formatDateTime(timestamp) {
-    try {
-        const date = new Date(timestamp);
-        return date.toLocaleString();
-    } catch (error) {
-        return 'Invalid date';
-    }
-}
-
-// Check if there's a new discovery
-async function checkForDiscovery() {
-    if (state.hasDiscovery) return; // Already know about it
-    
-    const response = await fetch(`${CONFIG.apiBaseUrl}/agent`);
-    if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-    }
-    const data = await response.json();
-    if (data.has_discovery && !state.hasDiscovery) {
-        state.hasDiscovery = true;
-        await fetchDiscovery();
-    }
-}
-
-// Show discovery modal
-function showDiscoveryModal() {
-    fetch(`${CONFIG.apiBaseUrl}/findings`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.exists) {
-                const modalContent = document.getElementById('common-modal-body');
-                const modalTitle = document.getElementById('common-modal-title');
-                
-                modalTitle.innerText = 'New Law of Physics Discovered!';
-                modalContent.innerHTML = data.html;
-                
-                const commonModal = new bootstrap.Modal(document.getElementById('common-modal'));
-                commonModal.show();
-            }
-        })
-        .catch(error => console.error('Error showing discovery modal:', error));
-}
-
-// Set up polling intervals
-function setPollingIntervals() {
-    // Set up periodic updates
-    setInterval(async () => {
-        try {
-            await fetchAgentInfo();
-            updateAgentInfo();
-        } catch (error) {
-            console.error('Error fetching agent info:', error);
+        // Keyword filter
+        if (keywordFilter && Array.isArray(article.keywords)) {
+            return article.keywords.includes(keywordFilter);
         }
-    }, 10000); // Every 10 seconds
+        
+        return true;
+    });
     
-    setInterval(async () => {
-        try {
-            await fetchMemory();
-            updateMemoryDisplay();
-        } catch (error) {
-            console.error('Error fetching memory:', error);
+    // Update heading
+    if (isSearchMode) {
+        const query = searchInputElement.value.trim();
+        resultsHeadingElement.textContent = `Search Results for "${query}" (Filtered)`;
+    } else {
+        resultsHeadingElement.textContent = 'Recent Articles (Filtered)';
+    }
+    
+    // Render filtered articles
+    renderArticles(filteredArticles);
+}
+
+// Render articles to the DOM
+function renderArticles(articles) {
+    if (!articles || articles.length === 0) {
+        articlesListElement.innerHTML = '<p>No articles found.</p>';
+        return;
+    }
+    
+    // Clear existing content
+    articlesListElement.innerHTML = '';
+    
+    // Render each article
+    articles.forEach(article => {
+        // Clone template
+        const articleElement = document.importNode(articleTemplate.content, true);
+        
+        // Set score badge
+        const scoreBadge = articleElement.querySelector('.score-badge');
+        scoreBadge.textContent = article.score?.toFixed(1) || '?';
+        
+        // Add score class
+        if (article.score >= 9) {
+            scoreBadge.classList.add('score-high');
+        } else if (article.score >= 7) {
+            scoreBadge.classList.add('score-medium');
+        } else {
+            scoreBadge.classList.add('score-low');
         }
-    }, 10000); // Every 10 seconds
-    
-    setInterval(async () => {
-        try {
-            await fetchLogs();
-            updateLogs();
-        } catch (error) {
-            console.error('Error fetching logs:', error);
+        
+        // Set article content
+        articleElement.querySelector('.article-title').textContent = article.title;
+        articleElement.querySelector('.article-source').textContent = article.source;
+        articleElement.querySelector('.article-date').textContent = article.formatted_date || 'Unknown date';
+        
+        // Set summary - using innerHTML because it may contain markdown-generated HTML
+        articleElement.querySelector('.article-summary').innerHTML = article.formatted_summary || article.summary || 'No summary available.';
+        
+        // Set keywords
+        const keywordsContainer = articleElement.querySelector('.article-keywords');
+        if (article.keywords && article.keywords.length > 0) {
+            article.keywords.forEach(keyword => {
+                const keywordTag = document.createElement('span');
+                keywordTag.classList.add('keyword-tag');
+                keywordTag.textContent = keyword;
+                keywordsContainer.appendChild(keywordTag);
+            });
+        } else {
+            keywordsContainer.innerHTML = '<span class="keyword-tag">No keywords</span>';
         }
-    }, 5000); // Every 5 seconds
-    
-    setInterval(async () => {
-        try {
-            await fetchInteractions();
-            updateInteractions();
-        } catch (error) {
-            console.error('Error fetching interactions:', error);
-        }
-    }, 15000); // Every 15 seconds
-    
-    // Check for discoveries
-    setInterval(checkForDiscovery, 10000); // Every 10 seconds
+        
+        // Set link
+        const linkElement = articleElement.querySelector('.article-link a');
+        linkElement.href = article.url;
+        
+        // Add to the list
+        articlesListElement.appendChild(articleElement);
+    });
 }
-
-// Update all UI elements
-function updateAllUI() {
-    updateAgentInfo();
-    updateMemoryDisplay();
-    updateLogs();
-    updateInteractions();
-}
-
-// Update logs (wrapper function)
-function updateLogs() {
-    updateLogsDisplay();
-    updateCurrentActivity();
-    updateLastUpdated();
-}
-
-// Update interactions (wrapper function)
-function updateInteractions() {
-    updateInteractionsDisplay();
-    updateLastUpdated();
-}
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
-
